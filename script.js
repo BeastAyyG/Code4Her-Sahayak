@@ -205,46 +205,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // ===== SOS BUTTON =====
-  const sosBtn = document.getElementById('sosBtn');
-  sosBtn.addEventListener('click', () => {
-    // Simulate SOS activation
-    sosBtn.style.transform = 'scale(0.95)';
-    setTimeout(() => { sosBtn.style.transform = ''; }, 150);
-
-    // Show a simulated alert
-    const alert = document.createElement('div');
-    alert.style.cssText = `
-      position: fixed;
-      top: 80px;
-      left: 50%;
-      transform: translateX(-50%) translateY(-20px);
-      background: rgba(220, 38, 38, 0.15);
-      border: 1px solid rgba(220, 38, 38, 0.3);
-      backdrop-filter: blur(16px);
-      padding: 14px 28px;
-      border-radius: 12px;
-      color: #fca5a5;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 500;
-      z-index: 9999;
-      opacity: 0;
-      transition: all 0.4s ease-out;
-    `;
-    alert.textContent = 'SOS Activated - Contacts Alerted';
-    document.body.appendChild(alert);
-
-    requestAnimationFrame(() => {
-      alert.style.opacity = '1';
-      alert.style.transform = 'translateX(-50%) translateY(0)';
+  const sosBtn = document.getElementById('sosBtn');n
+  if (sosBtn) {
+    sosBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.href = 'dialer.html?sos=1';
     });
-
-    setTimeout(() => {
-      alert.style.opacity = '0';
-      alert.style.transform = 'translateX(-50%) translateY(-20px)';
-      setTimeout(() => alert.remove(), 400);
-    }, 3000);
-  });
+  }
 
 
   // ===== MAP TOGGLE BUTTONS =====

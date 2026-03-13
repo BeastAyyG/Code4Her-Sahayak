@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phone Dialer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #121212;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .phone-frame {
+      width: 100%;
+      max-width: 420px;
+      min-height: 820px;
+      background: #1a1a1a;
+      border-radius: 36px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+
+    /* ─── Status Bar ─── */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 24px 4px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .status-bar .time {
+      letter-spacing: 0.02em;
+    }
+
+    .status-icons {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .status-icons .material-icons-round {
+      font-size: 18px;
+    }
+
+    /* ─── Top Nav ─── */
+    .top-nav {
+      padding: 8px 20px 12px;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .back-btn .material-icons-round {
+      font-size: 26px;
+    }
+
+    /* ─── On-Hold Banner ─── */
+    .on-hold-banner {
+      margin: 0 16px 6px;
+      background: #2a2a2a;
+      border-radius: 28px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideDown 0.4s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .on-hold-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #4a6741;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .on-hold-avatar .material-icons-round {
+      font-size: 22px;
+      color: #a8d5a2;
+    }
+
+    .on-hold-info {
+      flex: 1;
+    }
+
+    .on-hold-info .phone-number {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e0e0e0;
+    }
+
+    .on-hold-info .hold-status {
+      font-size: 12px;
+      color: #999;
+      margin-top: 1px;
+    }
+
+    .switch-btn {
+      background: none;
+      border: none;
+      color: #c9d1d9;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 16px;
+      transition: background 0.2s;
+    }
+
+    .switch-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* ─── Call Info (Center) ─── */
+    .call-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px 20px;
+      gap: 6px;
+    }
+
+    .call-type-label {
+      font-size: 13px;
+      color: #888;
+      letter-spacing: 0.01em;
+      margin-bottom: 10px;
+    }
+
+    .contact-avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      transition: transform 0.3s ease;
+    }
+
+    .contact-avatar:hover {
+      transform: scale(1.05);
+    }
+
+    .contact-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .contact-name {
+      font-size: 30px;
+      font-weight: 300;
+      letter-spacing: -0.01em;
+      color: #f0f0f0;
+    }
+
+    .call-timer {
+      font-size: 16px;
+      color: #999;
+      font-weight: 400;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.04em;
+    }
+
+    /* ─── Action Buttons Row ─── */
+    .action-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 20px 18px;
+    }
+
+    .action-btn {
+      background: #2a2a2a;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 28px;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #d0d0d0;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      background: #363636;
+      transform: translateY(-1px);
+    }
+
+    .action-btn:active {
+      transform: scale(0.96);
+    }
+
+    .action-btn .material-icons-round {
+      font-size: 18px;
+    }
+
+    /* ─── Bottom Control Buttons ─── */
+    .controls-row {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding: 14px 20px 10px;
+    }
+
+    .control-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: #c9c9c9;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s ease;
+    }
+
+    .control-btn:hover .control-icon {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .control-btn:active .control-icon {
+      transform: scale(0.92);
+    }
+
+    .control-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+    }
+
+    .control-icon .material-icons-round {
+      font-size: 26px;
+    }
+
+    .control-btn .label {
+      font-size: 11px;
+      font-weight: 500;
+      color: #999;
+      letter-spacing: 0.02em;
+    }
+
+    .control-btn.active .control-icon {
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .control-btn.active .control-icon .material-icons-round {
+      color: #1a1a1a;
+    }
+
+    .control-btn.active .label {
+      color: #fff;
+    }
+
+    /* ─── End Call ─── */
+    .end-call-area {
+      display: flex;
+      justify-content: center;
+      padding: 20px 20px 36px;
+    }
+
+    .end-call-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.35);
+      transition: all 0.25s ease;
+      animation: pulse-glow 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+
+      0%,
+      100% {
+        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.35);
+      }
+
+      50% {
+        box-shadow: 0 4px 32px rgba(239, 68, 68, 0.55);
+      }
+    }
+
+    .end-call-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 30px rgba(239, 68, 68, 0.5);
+    }
+
+    .end-call-btn:active {
+      transform: scale(0.94);
+    }
+
+    .end-call-btn .material-icons-round {
+      font-size: 32px;
+      color: #fff;
+      transform: rotate(135deg);
+    }
+
+    /* ─── Dialer Screen ─── */
+    .dialer-screen {
+      position: absolute;
+      inset: 0;
+      background: #1a1a1a;
+      display: flex;
+      flex-direction: column;
+      border-radius: 36px;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+      z-index: 10;
+    }
+
+    .dialer-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .dialer-header {
+      padding: 60px 20px 20px;
+      text-align: center;
+    }
+
+    .dialer-header h2 {
+      font-size: 16px;
+      font-weight: 400;
+      color: #999;
+      margin-bottom: 20px;
+    }
+
+    .dial-number-display {
+      font-size: 32px;
+      font-weight: 300;
+      color: #f0f0f0;
+      min-height: 42px;
+      letter-spacing: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      padding: 30px 40px;
+      flex: 1;
+    }
+
+    .key-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #2a2a2a;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin: 0 auto;
+      transition: all 0.15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .key-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(0);
+      transition: transform 0.3s ease;
+    }
+
+    .key-btn:active::after {
+      transform: scale(1);
+    }
+
+    .key-btn:hover {
+      background: #363636;
+    }
+
+    .key-btn:active {
+      transform: scale(0.92);
+    }
+
+    .key-btn .digit {
+      font-size: 28px;
+      font-weight: 300;
+      color: #f0f0f0;
+      line-height: 1;
+    }
+
+    .key-btn .letters {
+      font-size: 9px;
+      color: #888;
+      letter-spacing: 2px;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .dial-actions {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px 40px 50px;
+      gap: 40px;
+    }
+
+    .call-start-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(34, 197, 94, 0.35);
+      transition: all 0.25s ease;
+    }
+
+    .call-start-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 30px rgba(34, 197, 94, 0.5);
+    }
+
+    .call-start-btn:active {
+      transform: scale(0.94);
+    }
+
+    .call-start-btn .material-icons-round {
+      font-size: 32px;
+      color: #fff;
+    }
+
+    .backspace-btn {
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: all 0.2s;
+      position: absolute;
+      right: 50px;
+    }
+
+    .backspace-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .backspace-btn .material-icons-round {
+      font-size: 28px;
+    }
+
+    .dial-actions {
+      position: relative;
+    }
+
+    /* ─── Keypad Overlay (during call) ─── */
+    .keypad-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(26, 26, 26, 0.97);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      border-radius: 36px;
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .keypad-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .keypad-overlay-header {
+      padding: 60px 20px 10px;
+      text-align: center;
+    }
+
+    .keypad-overlay-display {
+      font-size: 32px;
+      font-weight: 300;
+      color: #f0f0f0;
+      min-height: 42px;
+      letter-spacing: 2px;
+    }
+
+    .keypad-overlay .keypad-grid {
+      flex: 1;
+    }
+
+    .keypad-overlay-close {
+      display: flex;
+      justify-content: center;
+      padding: 10px 20px 50px;
+    }
+
+    .keypad-close-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #2a2a2a;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .keypad-close-btn:hover {
+      background: #3a3a3a;
+    }
+
+    .keypad-close-btn .material-icons-round {
+      font-size: 24px;
+      color: #fff;
+    }
+
+    /* ─── Connecting animation ─── */
+    .connecting-dots {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .connecting-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #999;
+      animation: dotPulse 1.4s ease-in-out infinite;
+    }
+
+    .connecting-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .connecting-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes dotPulse {
+
+      0%,
+      80%,
+      100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+
+      40% {
+        opacity: 1;
+        transform: scale(1.2);
+      }
+    }
+
+    /* ─── Ringing animation ─── */
+    @keyframes ringPulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+      }
+
+      70% {
+        box-shadow: 0 0 0 20px rgba(34, 197, 94, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+      }
+    }
+
+    .contact-avatar.ringing {
+      animation: ringPulse 1.5s ease-out infinite;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="phone-frame">
+
+    <!-- ═══ DIALER SCREEN (visible initially) ═══ -->
+    <div class="dialer-screen" id="dialerScreen">
+      <div style="display:flex; align-items:center; gap:10px; padding:16px 20px 0;">
+        <a href="index.html"
+          style="color:#999; text-decoration:none; display:flex; align-items:center; gap:6px; font-size:14px; font-weight:500; transition:color 0.2s;"
+          onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#999'">
+          <span class="material-icons-round" style="font-size:20px;">arrow_back</span> Sahayak
+        </a>
+      </div>
+      <div class="dialer-header">
+        <h2>Enter a number</h2>
+        <div class="dial-number-display" id="dialDisplay"></div>
+      </div>
+
+      <div class="keypad-grid">
+        <button class="key-btn" data-digit="1">
+          <span class="digit">1</span>
+          <span class="letters">&nbsp;</span>
+        </button>
+        <button class="key-btn" data-digit="2">
+          <span class="digit">2</span>
+          <span class="letters">ABC</span>
+        </button>
+        <button class="key-btn" data-digit="3">
+          <span class="digit">3</span>
+          <span class="letters">DEF</span>
+        </button>
+        <button class="key-btn" data-digit="4">
+          <span class="digit">4</span>
+          <span class="letters">GHI</span>
+        </button>
+        <button class="key-btn" data-digit="5">
+          <span class="digit">5</span>
+          <span class="letters">JKL</span>
+        </button>
+        <button class="key-btn" data-digit="6">
+          <span class="digit">6</span>
+          <span class="letters">MNO</span>
+        </button>
+        <button class="key-btn" data-digit="7">
+          <span class="digit">7</span>
+          <span class="letters">PQRS</span>
+        </button>
+        <button class="key-btn" data-digit="8">
+          <span class="digit">8</span>
+          <span class="letters">TUV</span>
+        </button>
+        <button class="key-btn" data-digit="9">
+          <span class="digit">9</span>
+          <span class="letters">WXYZ</span>
+        </button>
+        <button class="key-btn" data-digit="*">
+          <span class="digit">✱</span>
+          <span class="letters">&nbsp;</span>
+        </button>
+        <button class="key-btn" data-digit="0">
+          <span class="digit">0</span>
+          <span class="letters">+</span>
+        </button>
+        <button class="key-btn" data-digit="#">
+          <span class="digit">#</span>
+          <span class="letters">&nbsp;</span>
+        </button>
+      </div>
+
+      <div class="dial-actions">
+        <button class="call-start-btn" id="startCallBtn" title="Start Call">
+          <span class="material-icons-round">call</span>
+        </button>
+        <button class="backspace-btn" id="backspaceBtn" title="Backspace">
+          <span class="material-icons-round">backspace</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══ IN-CALL SCREEN ═══ -->
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span class="time" id="statusTime">9:30</span>
+      <div class="status-icons">
+        <span class="material-icons-round">signal_cellular_alt</span>
+        <span class="material-icons-round">wifi</span>
+        <span class="material-icons-round">battery_full</span>
+      </div>
+    </div>
+
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <button class="back-btn" id="backBtn" title="Back">
+        <span class="material-icons-round">arrow_back</span>
+      </button>
+    </div>
+
+    <!-- On-Hold Banner -->
+    <div class="on-hold-banner" id="onHoldBanner">
+      <div class="on-hold-avatar">
+        <span class="material-icons-round">person</span>
+      </div>
+      <div class="on-hold-info">
+        <div class="phone-number">(650) 555-4734</div>
+        <div class="hold-status">On hold <span id="holdTimer">00:15</span></div>
+      </div>
+      <button class="switch-btn">Switch</button>
+    </div>
+
+    <!-- Call Info (Center) -->
+    <div class="call-info">
+      <div class="call-type-label">Google Voice Wi-Fi / data call</div>
+      <div class="contact-avatar" id="contactAvatar">
+        <img src="guru.png" alt="Gurudev">
+      </div>
+      <div class="contact-name">Gurudev</div>
+      <div class="call-timer" id="callTimer">
+        <span class="connecting-dots"><span></span><span></span><span></span></span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-row">
+      <button class="action-btn" id="transferBtn">
+        <span class="material-icons-round">phone_forwarded</span>
+        Transfer
+      </button>
+      <button class="action-btn" id="holdBtn">
+        <span class="material-icons-round">pause</span>
+        Hold
+      </button>
+      <button class="action-btn" id="mergeBtn">
+        <span class="material-icons-round">call_merge</span>
+        Merge
+      </button>
+    </div>
+
+    <!-- Control Buttons -->
+    <div class="controls-row">
+      <button class="control-btn" id="keypadBtn">
+        <div class="control-icon">
+          <span class="material-icons-round">dialpad</span>
+        </div>
+        <span class="label">Keypad</span>
+      </button>
+      <button class="control-btn" id="muteBtn">
+        <div class="control-icon">
+          <span class="material-icons-round">mic_off</span>
+        </div>
+        <span class="label">Mute</span>
+      </button>
+      <button class="control-btn" id="soundBtn">
+        <div class="control-icon">
+          <span class="material-icons-round">volume_up</span>
+        </div>
+        <span class="label">Sound</span>
+      </button>
+      <button class="control-btn" id="recordBtn">
+        <div class="control-icon">
+          <span class="material-icons-round">fiber_manual_record</span>
+        </div>
+        <span class="label">Record</span>
+      </button>
+    </div>
+
+    <!-- End Call -->
+    <div class="end-call-area">
+      <button class="end-call-btn" id="endCallBtn" title="End Call">
+        <span class="material-icons-round">call</span>
+      </button>
+    </div>
+
+    <!-- Keypad Overlay (during call) -->
+    <div class="keypad-overlay" id="keypadOverlay">
+      <div class="keypad-overlay-header">
+        <div class="keypad-overlay-display" id="overlayDisplay"></div>
+      </div>
+      <div class="keypad-grid">
+        <button class="key-btn" data-overlay-digit="1">
+          <span class="digit">1</span><span class="letters">&nbsp;</span>
+        </button>
+        <button class="key-btn" data-overlay-digit="2">
+          <span class="digit">2</span><span class="letters">ABC</span>
+        </button>
+        <button class="key-btn" data-overlay-digit="3">
+          <span class="digit">3</span><span class="letters">DEF</span>
+        </button>
+        <button class="key-btn" data-overlay-digit="4">
+          <span class="digit">4</span><span class="letters">GHI</span>
+        </button>
+        <button class="key-btn" data-overlay-digit="5">
+          <span class="digit">5</span><span class="letters">JKL</span>
+        </button>
+        <button class="key-btn" data-overlay-digit="6">
+          <span class="digit">6</span><span class="letters">MNO</span>
+        </button>
+        <button class="key-btn" data-overlay-digit="7">
+          <span class="digit">7</span><span class="letters">PQRS</span>
+        </button>
+        <button class="key-btn" data-overlay-digit="8">
+          <span class="digit">8</span><span class="letters">TUV</span>
+        </button>
+        <button class="key-btn" data-overlay-digit="9">
+          <span class="digit">9</span><span class="letters">WXYZ</span>
+        </button>
+        <button class="key-btn" data-overlay-digit="*">
+          <span class="digit">✱</span><span class="letters">&nbsp;</span>
+        </button>
+        <button class="key-btn" data-overlay-digit="0">
+          <span class="digit">0</span><span class="letters">+</span>
+        </button>
+        <button class="key-btn" data-overlay-digit="#">
+          <span class="digit">#</span><span class="letters">&nbsp;</span>
+        </button>
+      </div>
+      <div class="keypad-overlay-close">
+        <button class="keypad-close-btn" id="keypadCloseBtn">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ─── State ───
+    let dialedNumber = '';
+    let callSeconds = 0;
+    let holdSeconds = 15;
+    let callTimerInterval = null;
+    let holdTimerInterval = null;
+    let isInCall = false;
+    let overlayDigits = '';
+
+    // Create the audio object for the recorded voice talk
+    // Note: Make sure the audio file exists in the correct path.
+    const safetyCallAudio = new Audio('main1rec.mpeg');
+
+    // ─── DOM refs ───
+    const dialerScreen = document.getElementById('dialerScreen');
+    const dialDisplay = document.getElementById('dialDisplay');
+    const startCallBtn = document.getElementById('startCallBtn');
+    const backspaceBtn = document.getElementById('backspaceBtn');
+    const callTimerEl = document.getElementById('callTimer');
+    const holdTimerEl = document.getElementById('holdTimer');
+    const contactAvatar = document.getElementById('contactAvatar');
+    const endCallBtn = document.getElementById('endCallBtn');
+    const keypadBtn = document.getElementById('keypadBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const soundBtn = document.getElementById('soundBtn');
+    const recordBtn = document.getElementById('recordBtn');
+    const holdBtn = document.getElementById('holdBtn');
+    const keypadOverlay = document.getElementById('keypadOverlay');
+    const overlayDisplay = document.getElementById('overlayDisplay');
+    const keypadCloseBtn = document.getElementById('keypadCloseBtn');
+    const backBtn = document.getElementById('backBtn');
+    const statusTimeEl = document.getElementById('statusTime');
+
+    // ─── Update status bar time ───
+    function updateStatusTime() {
+      const now = new Date();
+      let h = now.getHours();
+      const m = now.getMinutes().toString().padStart(2, '0');
+      statusTimeEl.textContent = `${h}:${m}`;
+    }
+    updateStatusTime();
+    setInterval(updateStatusTime, 30000);
+
+    // ─── Format time ───
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = (seconds % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function formatHoldTime(seconds) {
+      const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const s = (seconds % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    // ─── Format phone number display ───
+    function formatPhoneNumber(num) {
+      const digits = num.replace(/\D/g, '');
+      if (digits.length <= 3) return digits;
+      if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+      if (digits.length <= 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+      return `+${digits.slice(0, digits.length - 10)} (${digits.slice(-10, -7)}) ${digits.slice(-7, -4)}-${digits.slice(-4)}`;
+    }
+
+    // ─── Dialer keypad ───
+    document.querySelectorAll('[data-digit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (dialedNumber.length < 15) {
+          dialedNumber += btn.dataset.digit;
+          dialDisplay.textContent = formatPhoneNumber(dialedNumber);
+        }
+      });
+    });
+
+    backspaceBtn.addEventListener('click', () => {
+      dialedNumber = dialedNumber.slice(0, -1);
+      dialDisplay.textContent = formatPhoneNumber(dialedNumber);
+    });
+
+    // ─── Start Call ───
+    startCallBtn.addEventListener('click', () => {
+      if (dialedNumber.length === 0) {
+        dialedNumber = '6505554734';
+        dialDisplay.textContent = formatPhoneNumber(dialedNumber);
+      }
+
+      isInCall = true;
+      dialerScreen.classList.add('hidden');
+      contactAvatar.classList.add('ringing');
+
+      // Show connecting state
+      callTimerEl.innerHTML = '<span class="connecting-dots"><span></span><span></span><span></span></span>';
+
+      // Simulate connect after 2s
+      setTimeout(() => {
+        contactAvatar.classList.remove('ringing');
+        callSeconds = 0;
+        callTimerEl.textContent = formatTime(callSeconds);
+
+        // Play the recorded voice talk when the call connects
+        safetyCallAudio.currentTime = 0;
+        safetyCallAudio.play().catch(e => console.warn('Could not play audio:', e));
+
+        // Start call timer
+        callTimerInterval = setInterval(() => {
+          callSeconds++;
+          callTimerEl.textContent = formatTime(callSeconds);
+        }, 1000);
+
+        // Start hold timer
+        holdTimerInterval = setInterval(() => {
+          holdSeconds++;
+          holdTimerEl.textContent = formatHoldTime(holdSeconds);
+        }, 1000);
+      }, 2000);
+    });
+
+    // ─── End Call ───
+    endCallBtn.addEventListener('click', () => {
+      isInCall = false;
+
+      // Pause and reset the recorded voice talk
+      safetyCallAudio.pause();
+      safetyCallAudio.currentTime = 0;
+
+      clearInterval(callTimerInterval);
+      clearInterval(holdTimerInterval);
+      callSeconds = 0;
+      holdSeconds = 15;
+      dialedNumber = '';
+      dialDisplay.textContent = '';
+      callTimerEl.innerHTML = '<span class="connecting-dots"><span></span><span></span><span></span></span>';
+      holdTimerEl.textContent = '00:15';
+      dialerScreen.classList.remove('hidden');
+
+      // Reset toggles
+      [muteBtn, soundBtn, recordBtn].forEach(b => b.classList.remove('active'));
+    });
+
+    // ─── Back button ───
+    backBtn.addEventListener('click', () => {
+      if (isInCall) return;
+      dialerScreen.classList.remove('hidden');
+    });
+
+    // ─── Toggle controls ───
+    [muteBtn, soundBtn, recordBtn].forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('active');
+      });
+    });
+
+    // ─── Hold toggle ───
+    holdBtn.addEventListener('click', () => {
+      holdBtn.classList.toggle('active');
+      if (holdBtn.classList.contains('active')) {
+        holdBtn.querySelector('.material-icons-round').textContent = 'play_arrow';
+        holdBtn.querySelector('.material-icons-round').nextSibling.textContent = ' Resume';
+      } else {
+        holdBtn.querySelector('.material-icons-round').textContent = 'pause';
+        holdBtn.childNodes[2].textContent = '\n      Hold\n    ';
+      }
+    });
+
+    // ─── Keypad overlay (in-call) ───
+    keypadBtn.addEventListener('click', () => {
+      overlayDigits = '';
+      overlayDisplay.textContent = '';
+      keypadOverlay.classList.add('visible');
+    });
+
+    keypadCloseBtn.addEventListener('click', () => {
+      keypadOverlay.classList.remove('visible');
+    });
+
+    document.querySelectorAll('[data-overlay-digit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        overlayDigits += btn.dataset.overlayDigit;
+        overlayDisplay.textContent = overlayDigits;
+      });
+    });
+
+    // ─── SOS Auto-Call: If loaded with ?sos=1, auto-dial ───
+    (function checkSOSParam() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('sos') === '1') {
+        // Pre-fill an emergency number
+        dialedNumber = '112';
+        dialDisplay.textContent = '112';
+
+        // Auto-trigger the call after a brief moment
+        setTimeout(() => {
+          startCallBtn.click();
+        }, 600);
+      }
+    })();
+  </script>
+
+</body>
+
+</html>

@@ -65,6 +65,8 @@
       </div>
 
       <div class="navbar-cta">
+        <a href="dialer.html" class="btn btn-dialer" id="dialerBtn" title="Open Phone Dialer"><i
+            data-lucide="phone"></i> Dialer</a>
         <button class="btn btn-sos" id="sosBtn"><i data-lucide="siren"></i> SOS</button>
         <a href="signup.html" class="btn btn-primary" id="getStartedNav">Get Started</a>
       </div>
@@ -573,7 +575,7 @@
             startFakeCallBtn.style.transform = '';
           }, 300);
 
-          // Trigger simulated call using the global event bus
+          // Trigger simulated safety call
           window.dispatchEvent(new Event('START_SIMULATION'));
         });
       }

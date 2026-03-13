@@ -298,6 +298,19 @@ img {
   /* handled by GSAP */
 }
 
+/* Dialer Button */
+.btn-dialer {
+  background: #16a34a;
+  color: white;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+  text-decoration: none;
+}
+
+.btn-dialer:hover {
+  background: #15803d;
+  box-shadow: 0 4px 20px rgba(22, 163, 74, 0.5);
+}
+
 /* Mobile menu toggle */
 .menu-toggle {
   display: none;
@@ -1634,6 +1647,10 @@ img {
     display: flex;
   }
 
+  .navbar-cta #getStartedNav {
+    display: none;
+  }
+
   .navbar-nav.active {
     display: flex;
     flex-direction: column;
@@ -1745,7 +1762,14 @@ img {
     width: 100%;
     justify-content: center;
   }
+
+  .navbar-cta {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
 }
+
 
 /* ===== 3D & ANIMATION UTILITIES ===== */
 .hero-phone,

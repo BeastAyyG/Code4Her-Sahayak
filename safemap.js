@@ -105,16 +105,16 @@
 
   // ===== SAFE PLACES DATABASE =====
   let SAFE_PLACES = [
-    { id: 1, name: 'Central Police Station', lat: 28.6155, lng: 77.2100, type: 'police', icon: '👮', open: '24/7' },
-    { id: 2, name: 'City Hospital', lat: 28.6100, lng: 77.2090, type: 'hospital', icon: '🏥', open: '24/7' },
-    { id: 3, name: 'MedPlus Pharmacy', lat: 28.6170, lng: 77.2060, type: 'pharmacy', icon: '💊', open: '24/7' },
-    { id: 4, name: 'Metro Station Gate 2', lat: 28.6130, lng: 77.2120, type: 'metro', icon: '🚇', open: '5AM-11PM' },
-    { id: 5, name: 'Women Help Desk', lat: 28.6190, lng: 77.2040, type: 'helpdesk', icon: '🛡️', open: '24/7' },
-    { id: 6, name: 'Fire Station', lat: 28.6090, lng: 77.2200, type: 'fire', icon: '🚒', open: '24/7' },
-    { id: 7, name: 'SafeSpot Convenience Store', lat: 28.6210, lng: 77.2130, type: 'store', icon: '🏪', open: '6AM-12AM' },
-    { id: 8, name: 'Community Center', lat: 28.6070, lng: 77.2060, type: 'community', icon: '🏛️', open: '8AM-10PM' },
-    { id: 9, name: 'Night Patrol Checkpoint', lat: 28.6145, lng: 77.2210, type: 'patrol', icon: '🔦', open: '8PM-6AM' },
-    { id: 10, name: 'Emergency Booth — Park Rd', lat: 28.6175, lng: 77.2175, type: 'booth', icon: '📞', open: '24/7' }
+    { id: 1, name: 'Central Police Station', lat: 28.6155, lng: 77.2100, type: 'police', icon: 'shield-check', open: '24/7' },
+    { id: 2, name: 'City Hospital', lat: 28.6100, lng: 77.2090, type: 'hospital', icon: 'hospital', open: '24/7' },
+    { id: 3, name: 'MedPlus Pharmacy', lat: 28.6170, lng: 77.2060, type: 'pharmacy', icon: 'pill', open: '24/7' },
+    { id: 4, name: 'Metro Station Gate 2', lat: 28.6130, lng: 77.2120, type: 'metro', icon: 'train-track', open: '5AM-11PM' },
+    { id: 5, name: 'Women Help Desk', lat: 28.6190, lng: 77.2040, type: 'helpdesk', icon: 'shield', open: '24/7' },
+    { id: 6, name: 'Fire Station', lat: 28.6090, lng: 77.2200, type: 'fire', icon: 'flame', open: '24/7' },
+    { id: 7, name: 'SafeSpot Convenience Store', lat: 28.6210, lng: 77.2130, type: 'store', icon: 'store', open: '6AM-12AM' },
+    { id: 8, name: 'Community Center', lat: 28.6070, lng: 77.2060, type: 'community', icon: 'landmark', open: '8AM-10PM' },
+    { id: 9, name: 'Night Patrol Checkpoint', lat: 28.6145, lng: 77.2210, type: 'patrol', icon: 'flashlight', open: '8PM-6AM' },
+    { id: 10, name: 'Emergency Booth — Park Rd', lat: 28.6175, lng: 77.2175, type: 'booth', icon: 'phone-call', open: '24/7' }
   ];
 
   // ===== STATE =====
@@ -184,6 +184,11 @@
     // Try to get user location automatically
     getUserLocation(true);
 
+    // Ensure Lucide icons are rendered inside dynamically created Leaflet popups
+    map.on('popupopen', function () {
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+
     updateStatus('Map ready. Enter locations or use your live position.');
   }
 
@@ -210,11 +215,11 @@
           userMarker.setLatLng(userLocation);
         } else {
           userMarker = L.marker(userLocation, {
-            icon: createCustomIcon('📍', 'marker-user'),
+            icon: createCustomIcon('user', 'marker-user'),
             zIndexOffset: 1000
           }).addTo(map);
           userMarker.bindPopup(createPopupHTML(
-            '📍 Your Location',
+            '<i data-lucide="user"></i> Your Location',
             `Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}<br/>Accuracy: ~${Math.round(accuracy)}m`,
             ['info']
           ));
@@ -344,28 +349,30 @@
     dangerLayerGroup.clearLayers();
     addDangerZones();
     updateDangerList();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   // ===== GENERATE SAFE PLACES NEAR USER =====
   function generateLocalSafePlaces(lat, lng) {
     SAFE_PLACES = [
-      { id: 1, name: 'Nearest Police Station', lat: lat + 0.003, lng: lng + 0.002, type: 'police', icon: '👮', open: '24/7' },
-      { id: 2, name: 'District Hospital', lat: lat - 0.004, lng: lng + 0.003, type: 'hospital', icon: '🏥', open: '24/7' },
-      { id: 3, name: 'Apollo Pharmacy', lat: lat + 0.001, lng: lng - 0.003, type: 'pharmacy', icon: '💊', open: '24/7' },
-      { id: 4, name: 'Metro Station', lat: lat + 0.002, lng: lng + 0.006, type: 'metro', icon: '🚇', open: '5 AM–11 PM' },
-      { id: 5, name: 'Women Help Desk', lat: lat - 0.001, lng: lng + 0.001, type: 'helpdesk', icon: '🛡️', open: '24/7' },
-      { id: 6, name: 'Fire Station', lat: lat - 0.005, lng: lng - 0.004, type: 'fire', icon: '🚒', open: '24/7' },
-      { id: 7, name: '24hr Convenience Store', lat: lat + 0.004, lng: lng - 0.001, type: 'store', icon: '🏪', open: '24/7' },
-      { id: 8, name: 'Community Center', lat: lat - 0.002, lng: lng - 0.005, type: 'community', icon: '🏛️', open: '8 AM–10 PM' },
-      { id: 9, name: 'Night Patrol Booth', lat: lat + 0.006, lng: lng + 0.004, type: 'patrol', icon: '🔦', open: '8 PM–6 AM' },
-      { id: 10, name: 'Emergency Call Booth', lat: lat - 0.003, lng: lng + 0.006, type: 'booth', icon: '📞', open: '24/7' },
-      { id: 11, name: 'ATM Booth (CCTV)', lat: lat + 0.001, lng: lng + 0.004, type: 'atm', icon: '🏧', open: '24/7' },
-      { id: 12, name: 'Petrol Station', lat: lat - 0.006, lng: lng + 0.002, type: 'petrol', icon: '⛽', open: '24/7' }
+      { id: 1, name: 'Nearest Police Station', lat: lat + 0.003, lng: lng + 0.002, type: 'police', icon: 'shield-check', open: '24/7' },
+      { id: 2, name: 'District Hospital', lat: lat - 0.004, lng: lng + 0.003, type: 'hospital', icon: 'hospital', open: '24/7' },
+      { id: 3, name: 'Apollo Pharmacy', lat: lat + 0.001, lng: lng - 0.003, type: 'pharmacy', icon: 'pill', open: '24/7' },
+      { id: 4, name: 'Metro Station', lat: lat + 0.002, lng: lng + 0.006, type: 'metro', icon: 'train-track', open: '5 AM–11 PM' },
+      { id: 5, name: 'Women Help Desk', lat: lat - 0.001, lng: lng + 0.001, type: 'helpdesk', icon: 'shield', open: '24/7' },
+      { id: 6, name: 'Fire Station', lat: lat - 0.005, lng: lng - 0.004, type: 'fire', icon: 'flame', open: '24/7' },
+      { id: 7, name: '24hr Convenience Store', lat: lat + 0.004, lng: lng - 0.001, type: 'store', icon: 'store', open: '24/7' },
+      { id: 8, name: 'Community Center', lat: lat - 0.002, lng: lng - 0.005, type: 'community', icon: 'landmark', open: '8 AM–10 PM' },
+      { id: 9, name: 'Night Patrol Booth', lat: lat + 0.006, lng: lng + 0.004, type: 'patrol', icon: 'flashlight', open: '8 PM–6 AM' },
+      { id: 10, name: 'Emergency Call Booth', lat: lat - 0.003, lng: lng + 0.006, type: 'booth', icon: 'phone-call', open: '24/7' },
+      { id: 11, name: 'ATM Booth (CCTV)', lat: lat + 0.001, lng: lng + 0.004, type: 'atm', icon: 'credit-card', open: '24/7' },
+      { id: 12, name: 'Petrol Station', lat: lat - 0.006, lng: lng + 0.002, type: 'petrol', icon: 'fuel', open: '24/7' }
     ];
 
     safeLayerGroup.clearLayers();
     addSafePlaces();
     updateSafeList();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   // ===== ADD DANGER ZONES TO MAP =====
@@ -387,12 +394,12 @@
 
       // Danger marker
       const marker = L.marker([zone.lat, zone.lng], {
-        icon: createCustomIcon('⚠️', 'marker-danger')
+        icon: createCustomIcon('alert-triangle', 'marker-danger')
       });
 
       const severityLabel = zone.severity.charAt(0).toUpperCase() + zone.severity.slice(1);
       marker.bindPopup(createPopupHTML(
-        `⚠️ ${zone.name}`,
+        `<i data-lucide="alert-triangle"></i> ${zone.name}`,
         `${zone.description}<br/><br/><strong>${zone.reports} reports</strong> from community`,
         [zone.severity === 'high' ? 'danger' : 'caution', 'info'],
         [`Severity: ${severityLabel}`, zone.type.replace('_', ' ')]
@@ -401,6 +408,7 @@
       dangerLayerGroup.addLayer(circle);
       dangerLayerGroup.addLayer(marker);
     });
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   // ===== ADD SAFE PLACES TO MAP =====
@@ -411,7 +419,7 @@
       });
 
       marker.bindPopup(createPopupHTML(
-        `${place.icon} ${place.name}`,
+        `<i data-lucide="${place.icon}"></i> ${place.name}`,
         `Type: ${place.type.charAt(0).toUpperCase() + place.type.slice(1)}<br/>Hours: <strong>${place.open}</strong>`,
         ['safe'],
         ['Safe Place', place.open === '24/7' ? '24/7 Open' : 'Limited Hours']
@@ -419,12 +427,13 @@
 
       safeLayerGroup.addLayer(marker);
     });
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   // ===== CREATE CUSTOM MAP ICON =====
-  function createCustomIcon(emoji, className) {
+  function createCustomIcon(iconName, className) {
     return L.divIcon({
-      html: `<div class="custom-marker ${className}">${emoji}</div>`,
+      html: `<div class="custom-marker ${className}"><i data-lucide="${iconName}"></i></div>`,
       className: '',
       iconSize: [36, 36],
       iconAnchor: [18, 18],
@@ -506,20 +515,22 @@
           if (userMarker) userMarker.setLatLng([lat, lon]);
           else {
             userMarker = L.marker([lat, lon], {
-              icon: createCustomIcon('📍', 'marker-user'),
+              icon: createCustomIcon('user', 'marker-user'),
               zIndexOffset: 1000
             }).addTo(map);
           }
+          if (typeof lucide !== 'undefined') lucide.createIcons();
           map.setView([lat, lon], 15);
         } else {
           toCoords = [lat, lon];
           if (destMarker) destMarker.setLatLng([lat, lon]);
           else {
             destMarker = L.marker([lat, lon], {
-              icon: createCustomIcon('🏁', 'marker-destination'),
+              icon: createCustomIcon('map-pin', 'marker-destination'),
               zIndexOffset: 900
             }).addTo(map);
           }
+          if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         container.classList.remove('active');
@@ -1042,32 +1053,12 @@
   });
 
   // SOS button
-  sosBtn.addEventListener('click', () => {
-    if (userLocation) {
-      const googleMapsLink = `https://www.google.com/maps?q=${userLocation[0]},${userLocation[1]}`;
-      const message = `🚨 SOS ALERT from Sahayak!\n\nI need help!\nMy location: ${googleMapsLink}\n\nLatitude: ${userLocation[0]}\nLongitude: ${userLocation[1]}`;
-
-      // Try to share via Web Share API
-      if (navigator.share) {
-        navigator.share({
-          title: '🚨 Sahayak SOS Alert',
-          text: message,
-          url: googleMapsLink
-        }).catch(() => {
-          // Fallback: copy to clipboard
-          navigator.clipboard.writeText(message);
-          alert('🚨 SOS Alert!\n\nYour location has been copied to clipboard. Send it to your emergency contacts immediately!');
-        });
-      } else {
-        navigator.clipboard.writeText(message).then(() => {
-          alert('🚨 SOS Alert!\n\nYour location has been copied to clipboard. Send it to your emergency contacts immediately!');
-        });
-      }
-    } else {
-      alert('🚨 SOS Alert!\n\nPlease enable location access for precise SOS alerts.');
-      getUserLocation(false);
-    }
-  });
+  if (sosBtn) {
+    sosBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.href = 'dialer.html?sos=1';
+    });
+  }
 
   // Allow clicking on map to set destination
   let clickLocked = false;
@@ -1088,7 +1079,7 @@
         destMarker.setLatLng(e.latlng);
       } else {
         destMarker = L.marker(e.latlng, {
-          icon: createCustomIcon('🏁', 'marker-destination'),
+          icon: createCustomIcon('map-pin', 'marker-destination'),
           zIndexOffset: 900
         }).addTo(map);
       }
@@ -1110,6 +1101,7 @@
     // Initial sidebar lists
     updateDangerList();
     updateSafeList();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   // Boot when DOM is ready

@@ -13,7 +13,7 @@
   <!-- Leaflet Routing Machine CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet">
 
   <link rel="stylesheet" href="safemap.css">
@@ -76,7 +76,7 @@
     <!-- ===== SIDEBAR ===== -->
     <aside class="map-sidebar" id="mapSidebar">
       <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Panel">
-        <span>◀</span>
+        <span><i data-lucide="chevron-left"></i></span>
       </button>
 
       <div class="sidebar-content">
@@ -90,7 +90,8 @@
             <label for="fromInput"><i data-lucide="map-pin"></i> Your Location</label>
             <div class="input-row">
               <input type="text" id="fromInput" placeholder="Enter starting point..." autocomplete="off">
-              <button class="btn-icon" id="useMyLocation" title="Use my live location">📌</button>
+              <button class="btn-icon" id="useMyLocation" title="Use my live location"><i
+                  data-lucide="locate-fixed"></i></button>
             </div>
             <div class="search-results" id="fromResults"></div>
           </div>
@@ -107,7 +108,7 @@
           </button>
 
           <button class="btn-route btn-route-alt" id="findShortestBtn">
-            <span class="btn-route-icon">📏</span>
+            <span class="btn-route-icon"><i data-lucide="ruler"></i></span>
             Compare Shortest Path
           </button>
         </div>
@@ -115,7 +116,7 @@
         <!-- Route Info -->
         <div class="sidebar-section route-info-panel" id="routeInfoPanel" style="display:none;">
           <h3 class="sidebar-title">
-            <span class="title-icon">📊</span> Route Comparison
+            <span class="title-icon"><i data-lucide="bar-chart-2"></i></span> Route Comparison
           </h3>
           <div class="route-cards" id="routeCards"></div>
         </div>
@@ -123,7 +124,7 @@
         <!-- Legend Section -->
         <div class="sidebar-section">
           <h3 class="sidebar-title">
-            <span class="title-icon">📋</span> Map Legend
+            <span class="title-icon"><i data-lucide="clipboard-list"></i></span> Map Legend
           </h3>
           <div class="legend">
             <div class="legend-item">
@@ -191,7 +192,7 @@
           <span><i data-lucide="hospital"></i></span>
         </button>
         <button class="map-control-btn" id="clearRouteBtn" title="Clear routes">
-          <span>🗑️</span>
+          <span><i data-lucide="trash-2"></i></span>
         </button>
       </div>
 
@@ -224,10 +225,10 @@
   </script>
 
 
-    <!-- GSAP for Smooth Motion & Motion Magic -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    <script src="gravity.js"></script>
+  <!-- GSAP for Smooth Motion & Motion Magic -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <script src="gravity.js"></script>
 </body>
 
 

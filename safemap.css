@@ -8,37 +8,44 @@
 }
 
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #12121a;
-  --bg-card: rgba(20, 20, 35, 0.85);
-  --bg-glass: rgba(15, 15, 25, 0.75);
-  --border-color: rgba(255, 255, 255, 0.06);
-  --border-glow: rgba(139, 92, 246, 0.3);
-  --text-primary: #f0f0f5;
-  --text-secondary: #a0a0b8;
-  --text-muted: #6b6b80;
-  --accent-purple: #8b5cf6;
-  --accent-pink: #ec4899;
-  --accent-cyan: #06b6d4;
-  --accent-green: #00ff88;
-  --accent-red: #ff4757;
-  --accent-orange: #ffa502;
-  --accent-gold: #FFD700;
-  --gradient-primary: linear-gradient(135deg, #8b5cf6, #ec4899, #06b6d4);
-  --gradient-safe: linear-gradient(135deg, #00ff88, #06b6d4);
-  --gradient-danger: linear-gradient(135deg, #ff4757, #ff6b81);
-  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 30px rgba(139, 92, 246, 0.15);
+  --bg-primary: #050505;
+  --bg-secondary: #0A0A0B;
+  --bg-card: #0F0F11;
+  --bg-glass: #18181A;
+  --border-color: #27272A;
+  --border-glow: rgba(255, 255, 255, 0.1);
+  --text-primary: #EDEDED;
+  --text-secondary: #A1A1AA;
+  --text-muted: rgba(240, 240, 245, 0.35);
+
+  --accent-purple: #10B981;
+  /* Changed to Emerald to fit the new scheme */
+  --accent-pink: #E11D48;
+  /* Changed to Ruby Red */
+  --accent-cyan: #34D399;
+  /* Sub-emerald */
+  --accent-green: #10B981;
+  --accent-red: #E11D48;
+  --accent-orange: #F59E0B;
+  --accent-gold: #FCD34D;
+
+  --gradient-primary: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  --gradient-safe: linear-gradient(135deg, #10B981, #059669);
+  --gradient-danger: linear-gradient(135deg, #E11D48, #BE123C);
+
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 30px rgba(225, 29, 72, 0.15);
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --sidebar-width: 380px;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
   font-family: var(--font);
@@ -99,8 +106,15 @@ html, body {
 }
 
 @keyframes livePulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .map-nav-actions {
@@ -486,8 +500,15 @@ html, body {
 }
 
 @keyframes dangerPulseSmall {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.4); }
-  50% { box-shadow: 0 0 0 5px rgba(255, 71, 87, 0); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 5px rgba(255, 71, 87, 0);
+  }
 }
 
 /* ===== DANGER & SAFE LISTS ===== */
@@ -646,8 +667,15 @@ html, body {
 }
 
 @keyframes userPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5), 0 4px 15px rgba(0,0,0,0.3); }
-  50% { box-shadow: 0 0 0 12px rgba(139, 92, 246, 0), 0 4px 15px rgba(0,0,0,0.3); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5), 0 4px 15px rgba(0, 0, 0, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 0 12px rgba(139, 92, 246, 0), 0 4px 15px rgba(0, 0, 0, 0.3);
+  }
 }
 
 .marker-destination {
@@ -673,8 +701,15 @@ html, body {
 }
 
 @keyframes dangerMarkerPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.5); }
-  50% { box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 71, 87, 0);
+  }
 }
 
 /* ===== DANGER ZONE CIRCLES ===== */
@@ -683,8 +718,15 @@ html, body {
 }
 
 @keyframes dangerCirclePulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.55; }
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
 }
 
 /* ===== MAP POPUPS ===== */
@@ -833,8 +875,15 @@ html, body {
 }
 
 @keyframes statusPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.5); }
-  50% { box-shadow: 0 0 0 5px rgba(0, 255, 136, 0); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 0 5px rgba(0, 255, 136, 0);
+  }
 }
 
 /* ===== LOADING OVERLAY ===== */
@@ -864,7 +913,9 @@ html, body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .map-loading p {
@@ -879,8 +930,15 @@ html, body {
 }
 
 @keyframes glowPulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.8; }
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
 }
 
 /* ===== RESPONSIVE ===== */

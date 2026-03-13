@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Create your Sahayak account — your AI-powered women safety companion. Sign up to activate your personal safety shield.">
+    <title>Sahayak — Sign Up</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="signup.css">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23E11D48' /></svg>">
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        i[data-lucide] {
+            width: 1.2em;
+            height: 1.2em;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .btn i[data-lucide],
+        .btn-sos i[data-lucide] {
+            width: 1em;
+            height: 1em;
+            margin-right: 6px;
+        }
+
+        .feature-icon i[data-lucide] {
+            width: 1.5em;
+            height: 1.5em;
+            stroke-width: 1.5;
+            color: #EDEDED;
+        }
+
+        .logo-icon i[data-lucide] {
+            width: 20px;
+            height: 20px;
+            color: #FFF;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <!-- Background Canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="signup-page">
+
+        <!-- Left Panel: Branding -->
+        <div class="signup-brand">
+            <a href="index.html" class="navbar-logo">
+                <div class="logo-icon"><i data-lucide="shield"></i></div>
+                Sahayak
+            </a>
+
+            <div class="brand-content">
+                <h1 class="brand-title">
+                    Safety starts<br>
+                    <span class="gradient-text">with you.</span>
+                </h1>
+                <p class="brand-description">
+                    Join 50,000+ women who walk with confidence every day. Your AI shield is just a sign-up away.
+                </p>
+
+                <div class="brand-features">
+                    <div class="brand-feature">
+                        <div class="brand-feature-icon"><i data-lucide="bot"></i></div>
+                        <div>
+                            <h4>AI That Protects</h4>
+                            <p>A companion that talks you through danger</p>
+                        </div>
+                    </div>
+                    <div class="brand-feature">
+                        <div class="brand-feature-icon"><i data-lucide="map"></i></div>
+                        <div>
+                            <h4>Smart Safe Routes</h4>
+                            <p>The brightest, most populated paths</p>
+                        </div>
+                    </div>
+                    <div class="brand-feature">
+                        <div class="brand-feature-icon"><i data-lucide="siren"></i></div>
+                        <div>
+                            <h4>Instant Alerts</h4>
+                            <p>One tap to notify your family</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="brand-footer">
+                <p>Trusted by <strong>50,000+</strong> women nationwide <i data-lucide="heart"></i></p>
+            </div>
+        </div>
+
+        <!-- Right Panel: Form -->
+        <div class="signup-form-panel">
+            <div class="signup-form-wrapper">
+
+                <div class="form-header">
+                    <h2>Create your account</h2>
+                    <p>Start your safety journey in under 60 seconds</p>
+                </div>
+
+                <!-- Social Sign Up -->
+                <div class="social-signup">
+                    <button class="btn-social" id="googleBtn">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path
+                                d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"
+                                fill="#4285F4" />
+                            <path
+                                d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"
+                                fill="#34A853" />
+                            <path
+                                d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332Z"
+                                fill="#FBBC05" />
+                            <path
+                                d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.166 6.656 3.58 9 3.58Z"
+                                fill="#EA4335" />
+                        </svg>
+                        Continue with Google
+                    </button>
+                </div>
+
+                <div class="divider">
+                    <span>or sign up with email</span>
+                </div>
+
+                <!-- Sign Up Form -->
+                <form class="signup-form" id="signupForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName">First Name</label>
+                            <input type="text" id="firstName" placeholder="e.g. Priya" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name</label>
+                            <input type="text" id="lastName" placeholder="e.g. Sharma" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" placeholder="priya@example.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <div class="phone-input-group">
+                            <span class="phone-prefix">+91</span>
+                            <input type="tel" id="phone" placeholder="98765 43210" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="password-input-group">
+                            <input type="password" id="password" placeholder="Min. 8 characters" required minlength="8">
+                            <button type="button" class="toggle-password" id="togglePassword"
+                                aria-label="Toggle password visibility">
+                                <i data-lucide="eye"></i>
+                            </button>
+                        </div>
+                        <div class="password-strength" id="passwordStrength">
+                            <div class="strength-bars">
+                                <div class="strength-bar"></div>
+                                <div class="strength-bar"></div>
+                                <div class="strength-bar"></div>
+                                <div class="strength-bar"></div>
+                            </div>
+                            <span class="strength-text" id="strengthText"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="emergencyContact">Emergency Contact Number</label>
+                        <div class="phone-input-group">
+                            <span class="phone-prefix">+91</span>
+                            <input type="tel" id="emergencyContact" placeholder="Family member's number" required>
+                        </div>
+                        <span class="form-hint">This person will be alerted during emergencies</span>
+                    </div>
+
+                    <div class="form-check">
+                        <input type="checkbox" id="terms" required>
+                        <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy
+                                Policy</a></label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">
+                        <span><i data-lucide="shield"></i></span> Create My Safety Shield
+                    </button>
+                </form>
+
+                <div class="form-footer">
+                    <p>Already have an account? <a href="#" class="link-accent">Sign in</a></p>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+    <script src="signup.js"></script>
+
+    <script>
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
+
+
+    <!-- GSAP for Smooth Motion & Motion Magic -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="gravity.js"></script>
+</body>
+
+
+</html>

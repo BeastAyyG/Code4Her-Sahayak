@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="Sahayak - Your AI-powered women safety companion. Get instant protection with AI shield, safe route maps, live location sharing, and emergency family alerts.">
+  <title>Sahayak — Your Safety, Our Mission</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23E11D48' /></svg>">
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    i[data-lucide] {
+      width: 1.2em;
+      height: 1.2em;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .btn i[data-lucide],
+    .btn-sos i[data-lucide] {
+      width: 1em;
+      height: 1em;
+      margin-right: 6px;
+    }
+
+    .feature-icon i[data-lucide] {
+      width: 1.5em;
+      height: 1.5em;
+      stroke-width: 1.5;
+      color: #EDEDED;
+    }
+
+    .logo-icon i[data-lucide] {
+      width: 20px;
+      height: 20px;
+      color: #FFF;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <!-- Background Canvas -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar" id="navbar">
+    <div class="container">
+      <a href="#" class="navbar-logo">
+        <div class="logo-icon"><i data-lucide="shield"></i></div>
+        Sahayak
+      </a>
+
+      <div class="navbar-nav" id="navMenu">
+        <a href="#hero" class="active">Home</a>
+        <a href="#features">Features</a>
+        <a href="#ai-shield">AI Shield</a>
+        <a href="safemap.html">Safe Maps</a>
+        <a href="#how-it-works">How It Works</a>
+      </div>
+
+      <div class="navbar-cta">
+        <button class="btn btn-sos" id="sosBtn"><i data-lucide="siren"></i> SOS</button>
+        <a href="signup.html" class="btn btn-primary" id="getStartedNav">Get Started</a>
+      </div>
+
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero" id="hero">
+
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          AI-Powered Safety Platform
+        </div>
+        <h1 class="hero-title">
+          Your Safety,<br>
+          <span class="gradient-text">Our Mission.</span>
+        </h1>
+        <p class="hero-subtitle">
+          Sahayak is your intelligent safety companion — with an AI that acts as your protector, real-time location
+          sharing, safe route mapping, and instant family alerts.
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-primary">
+            <span><i data-lucide="shield"></i></span> Activate Shield
+          </button>
+          <button class="btn btn-secondary">
+            <span><i data-lucide="play"></i></span> Watch Demo
+          </button>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-value" data-target="50000" data-suffix="+">0</div>
+            <div class="hero-stat-label">Active Users</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value" data-target="99.8" data-suffix="%" data-decimal="true">0</div>
+            <div class="hero-stat-label">Uptime</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value" data-target="3" data-suffix="s">0</div>
+            <div class="hero-stat-label">Alert Speed</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-phone">
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-notch"></div>
+              <div class="phone-statusbar">
+                <span>9:41</span>
+                <span>📶 🔋</span>
+              </div>
+              <div class="phone-chat">
+                <div class="chat-msg incoming">
+                  Hey, I noticed you're walking alone. I'm here with you. Stay on the main road. <i
+                    data-lucide="shield"></i>
+                </div>
+                <div class="chat-msg outgoing">
+                  I feel like someone is following me
+                </div>
+                <div class="chat-msg incoming">
+                  I'm tracking your location. I've alerted your emergency contacts and found a safe spot 200m ahead —
+                  Café Bloom. Head there now.
+                </div>
+                <div class="chat-msg outgoing">
+                  Thanks, heading there now
+                </div>
+                <div class="chat-msg incoming">
+                  Great. I'll stay with you until you're safe. Your brother has been notified. <i
+                    data-lucide="heart"></i>
+                </div>
+              </div>
+              <div class="phone-input">
+                <input type="text" placeholder="Type a message..." disabled>
+                <button class="send-btn"><i data-lucide="send"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Floating cards -->
+          <div class="floating-card fc-location">
+            <div class="fc-icon"><i data-lucide="map-pin"></i></div>
+            <div>
+              <div class="fc-text">Live Location</div>
+              <div class="fc-sub">Sharing with 3 contacts</div>
+            </div>
+          </div>
+
+          <div class="floating-card fc-alert">
+            <div class="fc-icon"><i data-lucide="siren"></i></div>
+            <div>
+              <div class="fc-text">Alert Sent</div>
+              <div class="fc-sub">Family notified</div>
+            </div>
+          </div>
+
+          <div class="floating-card fc-safe">
+            <div class="fc-icon"><i data-lucide="check-circle"></i></div>
+            <div>
+              <div class="fc-text">Safe Zone</div>
+              <div class="fc-sub">200m ahead</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== TRUST BAR ===== -->
+  <section class="trust-bar">
+    <div class="container">
+      <div class="trust-bar-label">Trusted by organizations nationwide</div>
+      <div class="trust-logos">
+        <div class="trust-logo"><span><i data-lucide="building"></i></span> Women's Commission</div>
+        <div class="trust-logo"><span><i data-lucide="hospital"></i></span> SafeCity India</div>
+        <div class="trust-logo"><span><i data-lucide="badge-check"></i></span> CyberPolice</div>
+        <div class="trust-logo"><span><i data-lucide="graduation-cap"></i></span> UnivSafe</div>
+        <div class="trust-logo"><span><i data-lucide="heart"></i></span> SheShield</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FEATURES ===== -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="features-header reveal">
+        <span class="section-label"><span class="dot"></span> Core Features</span>
+        <h2 class="section-title">Everything You Need to<br><span class="gradient-text">Feel Secure</span></h2>
+        <p class="section-description">Four powerful pillars of protection working together to ensure your safety at all
+          times.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon purple"><i data-lucide="bot"></i></div>
+          <h3>AI Companion</h3>
+          <p>A protective AI that talks like a caring guardian — always alert, always calm, always guiding you to safety
+            in real-time.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon pink"><i data-lucide="message-square"></i></div>
+          <h3>Quick Messages</h3>
+          <p>Pre-recorded safety messages you can send with one tap — "I'm being followed", "Share my location", "Call
+            me now".</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon cyan"><i data-lucide="map-pin"></i></div>
+          <h3>Live Location</h3>
+          <p>Instantly share your real-time GPS location with family. One button press sends your exact coordinates and
+            movement trail.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon green"><i data-lucide="users"></i></div>
+          <h3>Family Alerts</h3>
+          <p>Automated SMS and push notifications to your emergency contacts when you trigger an alert — with your live
+            location attached.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== AI SHIELD ===== -->
+  <section class="ai-shield" id="ai-shield">
+    <div class="container">
+      <div class="ai-shield-content reveal">
+        <span class="section-label"><span class="dot"></span> AI Shield</span>
+        <h2 class="section-title">Your Personal<br><span class="gradient-text">AI Protector</span></h2>
+        <p class="section-description">More than a chatbot — Sahayak's AI companion acts as a caring, alert protector
+          who talks you through scary situations and takes real action.</p>
+
+        <div class="ai-features-list">
+          <div class="ai-feature-item">
+            <div class="ai-feature-icon"><i data-lucide="activity"></i></div>
+            <div class="ai-feature-text">
+              <h4>Context-Aware Responses</h4>
+              <p>Understands your situation from your messages and location data to give relevant, calming guidance.</p>
+            </div>
+          </div>
+          <div class="ai-feature-item">
+            <div class="ai-feature-icon"><i data-lucide="mic"></i></div>
+            <div class="ai-feature-text">
+              <h4>Protective Tone</h4>
+              <p>Speaks like a caring friend who's right there with you — firm, reassuring, and action-oriented.</p>
+            </div>
+          </div>
+          <div class="ai-feature-item">
+            <div class="ai-feature-icon"><i data-lucide="zap"></i></div>
+            <div class="ai-feature-text">
+              <h4>Instant Actions</h4>
+              <p>Can trigger alerts, share location, call authorities, and guide you to the nearest safe zone
+                automatically.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-shield-visual reveal">
+        <div class="ai-chat-mockup">
+          <div class="ai-chat-header">
+            <div class="ai-avatar"><i data-lucide="shield"></i></div>
+            <div class="ai-chat-header-text">
+              <h4>Sahayak AI</h4>
+              <span>Always online</span>
+            </div>
+          </div>
+          <div class="ai-chat-body">
+            <div class="ai-msg bot">
+              Hi! I'm your Sahayak. I'm always here. How are you feeling right now? <i data-lucide="heart"></i>
+            </div>
+            <div class="ai-msg user">
+              I'm walking home and it's really dark. I'm scared.
+            </div>
+            <div class="ai-msg bot">
+              I hear you. You're not alone — I'm right here. I can see you're on MG Road. There's a 24/7 pharmacy 150m
+              ahead on your left. Head towards it. I'm sharing your location with Mom now.
+            </div>
+          </div>
+          <div class="ai-chat-quick">
+            <div class="ai-chat-quick-label">Quick Messages</div>
+            <div class="quick-msgs">
+              <button class="quick-msg"><i data-lucide="siren"></i> I'm in danger</button>
+              <button class="quick-msg"><i data-lucide="map-pin"></i> Share location</button>
+              <button class="quick-msg" id="start-fake-call">📞 Call Dad (Fake)</button>
+              <button class="quick-msg">🏃 Find safe place</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SAFE MAPS ===== -->
+  <section class="safe-maps" id="safe-maps">
+    <div class="container">
+      <div class="safe-maps-content reveal">
+        <span class="section-label"><span class="dot"></span> Smart Maps</span>
+        <h2 class="section-title">The Safest Route,<br><span class="gradient-text">Not the Shortest</span></h2>
+        <p class="section-description">Our mapping system finds you the brightest, most populated path — avoiding dark
+          alleys and known unsafe zones.</p>
+
+        <div class="map-features-list">
+          <div class="map-feature-item">
+            <div class="map-feature-icon"><i data-lucide="lightbulb"></i></div>
+            <div class="map-feature-text">
+              <h4>Brightest Path Routing</h4>
+              <p>Routes you through well-lit streets and commercial areas, even if they take a little longer.</p>
+            </div>
+          </div>
+          <div class="map-feature-item">
+            <div class="map-feature-icon"><i data-lucide="users"></i></div>
+            <div class="map-feature-text">
+              <h4>Crowd-Dense Routes</h4>
+              <p>Prioritizes paths with more foot traffic and public activity so you're never truly alone.</p>
+            </div>
+          </div>
+          <div class="map-feature-item">
+            <div class="map-feature-icon"><i data-lucide="alert-triangle"></i></div>
+            <div class="map-feature-text">
+              <h4>Unsafe Zone Markers</h4>
+              <p>Community-reported and data-driven markers flag potentially dangerous areas on the map.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="safe-maps-visual reveal">
+        <div class="map-mockup">
+          <div class="map-header">
+            <h4><i data-lucide="map"></i> Safe Navigation</h4>
+            <div class="map-toggle">
+              <a href="safemap.html" class="active" style="text-decoration:none;color:inherit;">Safe Route</a>
+              <button>Bright Route</button>
+              <button>Popular</button>
+            </div>
+          </div>
+          <div class="map-body">
+            <div class="map-grid"></div>
+
+            <!-- SVG Route -->
+            <div class="map-route">
+              <svg viewBox="0 0 500 340">
+                <!-- Unsafe route (dashed) -->
+                <path class="route-unsafe" d="M 80 280 L 80 180 L 200 180 L 200 60 L 420 60" />
+                <!-- Safe route (glowing) -->
+                <path class="route-safe"
+                  d="M 80 280 C 80 240, 120 220, 160 200 S 240 180, 280 160 S 340 120, 380 100 S 400 80, 420 60" />
+              </svg>
+            </div>
+
+            <!-- Markers -->
+            <div class="map-marker" style="left: 65px; top: 230px;">
+              <div class="marker-dot user-loc"></div>
+              <span class="marker-label">You</span>
+            </div>
+
+            <div class="map-marker" style="left: 400px; top: 22px;">
+              <div class="marker-dot safe"></div>
+              <span class="marker-label">Home <i data-lucide="home"></i></span>
+            </div>
+
+            <div class="map-marker" style="left: 175px; top: 125px;">
+              <div class="marker-dot unsafe"></div>
+              <span class="marker-label"><i data-lucide="alert-triangle"></i> Unsafe</span>
+            </div>
+
+            <div class="map-marker" style="left: 290px; top: 100px;">
+              <div class="marker-dot safe"></div>
+              <span class="marker-label"><i data-lucide="lightbulb"></i> Well-lit</span>
+            </div>
+
+            <div class="map-marker" style="left: 185px; top: 175px;">
+              <div class="marker-dot unsafe"></div>
+              <span class="marker-label"><i data-lucide="alert-triangle"></i> Dark alley</span>
+            </div>
+
+            <!-- Route info -->
+            <div class="route-info">
+              <div class="route-info-left">
+                <div class="route-info-icon"><i data-lucide="shield"></i></div>
+                <div class="route-info-text">
+                  <h5>Safest Route Selected</h5>
+                  <span>1.2 km • 15 min walk • Well-lit path</span>
+                </div>
+              </div>
+              <div class="route-info-badge">✓ Safe</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <div class="how-header reveal">
+        <span class="section-label"><span class="dot"></span> How It Works</span>
+        <h2 class="section-title">Safety in<br><span class="gradient-text">Three Steps</span></h2>
+        <p class="section-description">Getting protected takes less than 60 seconds. Here's how Sahayak keeps you safe.
+        </p>
+      </div>
+
+      <div class="steps-container">
+        <div class="step-card reveal">
+          <div class="step-number">
+            <span class="step-icon"><i data-lucide="smartphone"></i></span>
+            <span class="step-num">1</span>
+          </div>
+          <h3>Open Sahayak</h3>
+          <p>Launch the app and your AI companion is instantly active. No setup needed — your shield is on.</p>
+        </div>
+
+        <div class="step-card reveal">
+          <div class="step-number">
+            <span class="step-icon"><i data-lucide="message-square"></i></span>
+            <span class="step-num">2</span>
+          </div>
+          <h3>Talk or Tap</h3>
+          <p>Chat with your AI protector or use quick message buttons to instantly communicate your situation.</p>
+        </div>
+
+        <div class="step-card reveal">
+          <div class="step-number">
+            <span class="step-icon"><i data-lucide="shield"></i></span>
+            <span class="step-num">3</span>
+          </div>
+          <h3>Stay Protected</h3>
+          <p>Sahayak alerts your family, shares your location, finds safe routes, and guides you until you're safe.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== STATS ===== -->
+  <section class="stats" id="stats">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-card reveal">
+          <div class="stat-value" data-target="50000" data-suffix="+">0</div>
+          <div class="stat-label">Women Protected</div>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-value" data-target="120000" data-suffix="+">0</div>
+          <div class="stat-label">Alerts Sent</div>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-value" data-target="85000" data-suffix="+">0</div>
+          <div class="stat-label">Safe Routes Found</div>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-value" data-target="250" data-suffix="+">0</div>
+          <div class="stat-label">Cities Covered</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CTA ===== -->
+  <section class="cta" id="cta">
+    <div class="container">
+      <div class="cta-box reveal">
+        <div class="cta-glow"></div>
+        <span class="section-label"><span class="dot"></span> Get Started</span>
+        <h2 class="section-title">Ready to Feel<br><span class="gradient-text">Safe Again?</span></h2>
+        <p class="section-description">
+          Join thousands of women who walk with confidence knowing Sahayak is always by their side.
+        </p>
+        <div class="cta-actions">
+          <button class="btn btn-primary">
+            <span><i data-lucide="shield"></i></span> Activate Sahayak
+          </button>
+          <button class="btn btn-secondary">
+            <span><i data-lucide="book-open"></i></span> Learn More
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="#" class="navbar-logo">
+            <div class="logo-icon"><i data-lucide="shield"></i></div>
+            Sahayak
+          </a>
+          <p>Your AI-powered women safety companion. Because every woman deserves to feel safe, everywhere, always.</p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Platform</h4>
+          <a href="#">AI Companion</a>
+          <a href="#">Safe Maps</a>
+          <a href="#">Live Tracking</a>
+          <a href="#">Family Alerts</a>
+        </div>
+
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <a href="#">Safety Guide</a>
+          <a href="#">Blog</a>
+          <a href="#">Community</a>
+          <a href="#">Help Center</a>
+        </div>
+
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="#">About Us</a>
+          <a href="#">Careers</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Contact</a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 Sahayak. All rights reserved. Made with <i data-lucide="heart"></i> for women's safety.</p>
+        <div class="footer-socials">
+          <a href="#" class="footer-social" aria-label="Twitter"><i data-lucide="twitter"></i></a>
+          <a href="#" class="footer-social" aria-label="Instagram"><i data-lucide="instagram"></i></a>
+          <a href="#" class="footer-social" aria-label="LinkedIn"><i data-lucide="linkedin"></i></a>
+          <a href="#" class="footer-social" aria-label="GitHub"><i data-lucide="github"></i></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script src="SafetyCall.js"></script>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    // Register Service Worker for audio/PWA persistence
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+          console.log('SW registered: ', registration.scope);
+        }).catch(registrationError => {
+          console.log('SW registration failed: ', registrationError);
+        });
+      });
+    }
+
+    // Connect Fake Call Button to Event Bus
+    document.addEventListener('DOMContentLoaded', () => {
+      const startFakeCallBtn = document.getElementById('start-fake-call');
+      if (startFakeCallBtn) {
+        startFakeCallBtn.addEventListener('click', () => {
+          // Visual feedback
+          startFakeCallBtn.style.background = 'rgba(255, 255, 255, 0.25)';
+          startFakeCallBtn.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            startFakeCallBtn.style.background = '';
+            startFakeCallBtn.style.transform = '';
+          }, 300);
+
+          // Trigger simulated call using the global event bus
+          window.dispatchEvent(new Event('START_SIMULATION'));
+        });
+      }
+
+      // Handle the 'end call' button
+      const endFakeCallBtn = document.getElementById('end-fake-call');
+      if (endFakeCallBtn) {
+        endFakeCallBtn.addEventListener('click', () => {
+          window.dispatchEvent(new Event('STOP_SIMULATION'));
+        });
+      }
+    });
+
+  </script>
+
+  <!-- GSAP for Smooth Motion & Motion Magic -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <script src="gravity.js"></script>
+
+  <!-- ===== SIMULATED SAFETY CALL OVERLAY ===== -->
+  <div class="safety-call-overlay" id="safety-call-overlay" style="display: none;">
+    <div class="sc-pulse"></div>
+    <div class="sc-info">
+      <span class="sc-title">Dad Mobile</span>
+      <span class="sc-status" id="sc-status">00:00</span>
+    </div>
+    <button class="sc-end-btn" id="end-fake-call">
+      <i data-lucide="phone-off" style="width: 14px; height: 14px;"></i> End
+    </button>
+  </div>
+</body>
+
+
+</html>

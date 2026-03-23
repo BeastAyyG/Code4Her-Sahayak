@@ -26,6 +26,18 @@
     osrmUrl: 'https://router.project-osrm.org/route/v1/driving',
     searchDelay: 400,
     googlePlacesApiKey: RUNTIME_CONFIG.googlePlacesApiKey || null,
+    googlePlaces: {
+      cooldownMs: 120000,
+      maxCallsPerDay: 25,
+      cachePrecision: 2,
+      searchRadiusMeters: 1000,
+      maxResultCount: 8,
+      allowedAreas: [
+        { name: 'Vijayawada', lat: 16.5062, lng: 80.6480, radiusKm: 18 },
+        { name: 'Guntur', lat: 16.3067, lng: 80.4365, radiusKm: 14 },
+        { name: 'Mangalagiri', lat: 16.4300, lng: 80.5680, radiusKm: 8 }
+      ]
+    },
     routeColors: {
       brightest: '#00ff88',
       shortest: '#667eea',
@@ -165,8 +177,10 @@
 
   // VGM Specific Variables
   let vgmStreetsData = null;
-  let getHavensTimeout = null;
   let havensCache = {};
+  let pendingHavensRequest = null;
+  let lastGooglePlacesCallAt = 0;
+  const GOOGLE_PLACES_USAGE_KEY = 'sahayak_google_places_usage_v1';
 
   // ===== DOM ELEMENTS =====
   const $ = (sel) => document.querySelector(sel);
@@ -818,6 +832,39 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
+  function getGooglePlacesUsage() {
+    try {
+      const raw = localStorage.getItem(GOOGLE_PLACES_USAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function recordGooglePlacesUsage(now) {
+    try {
+      const windowStart = now - 24 * 60 * 60 * 1000;
+      const usage = getGooglePlacesUsage().filter(timestamp => Number.isFinite(timestamp) && timestamp >= windowStart);
+      usage.push(now);
+      localStorage.setItem(GOOGLE_PLACES_USAGE_KEY, JSON.stringify(usage));
+    } catch (e) {
+      console.warn('Failed to persist Google Places usage window', e);
+    }
+  }
+
+  function canUseGooglePlaces(now) {
+    const windowStart = now - 24 * 60 * 60 * 1000;
+    const recentUsage = getGooglePlacesUsage().filter(timestamp => Number.isFinite(timestamp) && timestamp >= windowStart);
+    return recentUsage.length < CONFIG.googlePlaces.maxCallsPerDay;
+  }
+
+  function isWithinAllowedGooglePlacesArea(lat, lng) {
+    return CONFIG.googlePlaces.allowedAreas.some(area =>
+      haversineDistance(lat, lng, area.lat, area.lng) <= area.radiusKm
+    );
+  }
+
   // ===== DRAW ROUTE ON MAP =====
   function drawRoute(coordinates, isBrightest) {
     const color = isBrightest ? CONFIG.routeColors.brightest : CONFIG.routeColors.shortest;
@@ -891,25 +938,40 @@
 
   // ===== DEBOUNCED GOOGLE PLACES API (FREE TIER GUARD) =====
   async function getVGMHavens(lat, lon) {
-    const cacheKey = `${lat.toFixed(3)},${lon.toFixed(3)}`;
-    if (havensCache[cacheKey]) return havensCache[cacheKey];
-
-    // Debouncer to prevent rapid API billing
-    if (getHavensTimeout) {
-      console.log('Debouncing Google Places API call');
-      return { places: [] };
-    }
-
-    getHavensTimeout = setTimeout(() => { getHavensTimeout = null; }, 60000); // 60s cooldown
-
     if (!CONFIG.googlePlacesApiKey || CONFIG.googlePlacesApiKey === 'YOUR_GOOGLE_KEY') {
       return { places: [] };
     }
 
+    if (!isWithinAllowedGooglePlacesArea(lat, lon)) {
+      console.log('Skipping Google Places call outside approved VGM areas');
+      return { places: [] };
+    }
+
+    const roundedLat = Number(lat).toFixed(CONFIG.googlePlaces.cachePrecision);
+    const roundedLon = Number(lon).toFixed(CONFIG.googlePlaces.cachePrecision);
+    const cacheKey = `${roundedLat},${roundedLon}`;
+    if (havensCache[cacheKey]) return havensCache[cacheKey];
+
+    if (pendingHavensRequest && pendingHavensRequest.cacheKey === cacheKey) {
+      return pendingHavensRequest.promise;
+    }
+
+    const now = Date.now();
+    if (now - lastGooglePlacesCallAt < CONFIG.googlePlaces.cooldownMs) {
+      console.log('Skipping Google Places call during cooldown window');
+      return { places: [] };
+    }
+
+    if (!canUseGooglePlaces(now)) {
+      console.log('Skipping Google Places call because daily local browser cap was reached');
+      return { places: [] };
+    }
+
+    lastGooglePlacesCallAt = now;
+
     try {
       const url = 'https://places.googleapis.com/v1/places:searchNearby';
-
-      const response = await fetch(url, {
+      const requestPromise = fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -918,17 +980,31 @@
         },
         body: JSON.stringify({
           includedTypes: ["police", "hospital", "pharmacy", "convenience_store"],
-          maxResultCount: 10,
+          maxResultCount: CONFIG.googlePlaces.maxResultCount,
           locationRestriction: {
-            circle: { center: { latitude: lat, longitude: lon }, radius: 1000.0 }
+            circle: { center: { latitude: lat, longitude: lon }, radius: CONFIG.googlePlaces.searchRadiusMeters }
           }
         })
-      });
-      if (!response.ok) return { places: [] };
-      const data = await response.json();
-      havensCache[cacheKey] = data;
-      return data;
-    } catch (e) { return { places: [] }; }
+      })
+        .then(async response => {
+          if (!response.ok) return { places: [] };
+          const data = await response.json();
+          havensCache[cacheKey] = data;
+          recordGooglePlacesUsage(now);
+          return data;
+        })
+        .catch(() => ({ places: [] }))
+        .finally(() => {
+          if (pendingHavensRequest && pendingHavensRequest.cacheKey === cacheKey) {
+            pendingHavensRequest = null;
+          }
+        });
+
+      pendingHavensRequest = { cacheKey, promise: requestPromise };
+      return await requestPromise;
+    } catch (e) {
+      return { places: [] };
+    }
   }
 
   function syncSafePlacesFromGoogle(places) {

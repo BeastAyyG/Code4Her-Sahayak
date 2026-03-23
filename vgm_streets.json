@@ -1,0 +1,88 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "highway": "trunk",
+                "lit": "yes",
+                "name": "NH16 (Vijayawada to Mangalagiri)"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [
+                        80.6480,
+                        16.5062
+                    ],
+                    [
+                        80.6200,
+                        16.4800
+                    ],
+                    [
+                        80.5800,
+                        16.4500
+                    ],
+                    [
+                        80.5599,
+                        16.4357
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "highway": "trunk",
+                "lit": "yes",
+                "name": "NH16 (Mangalagiri to Guntur)"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [
+                        80.5599,
+                        16.4357
+                    ],
+                    [
+                        80.5000,
+                        16.3800
+                    ],
+                    [
+                        80.4600,
+                        16.3400
+                    ],
+                    [
+                        80.4365,
+                        16.3067
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "highway": "primary",
+                "lit": "no",
+                "name": "Old Guntur Road (Unlit)"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [
+                        80.6000,
+                        16.4900
+                    ],
+                    [
+                        80.5500,
+                        16.4000
+                    ],
+                    [
+                        80.4500,
+                        16.3200
+                    ]
+                ]
+            }
+        }
+    ]
+}

@@ -5,9 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description"
-    content="Sahayak Safe Maps — Find the brightest, safest route to your destination. Avoid dangerous zones with real-time safe path navigation.">
-  <title>Sahayak — Safe Maps | Brightest Path Navigation</title>
+    content="Sahayak Illumination Maps — Find the brightest, well-lit route to your destination. Avoid unlit zones with real-time illumination navigation.">
+  <title>Sahayak — Illumination Maps | Brightest Path Navigation</title>
 
+  <!-- Turf.js for spatial analysis -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <!-- Leaflet Routing Machine CSS -->
@@ -57,12 +59,13 @@
   <!-- ===== NAVBAR ===== -->
   <nav class="map-navbar" id="mapNavbar">
     <a href="index.html" class="map-nav-logo">
-      <div class="logo-icon"><i data-lucide="shield"></i></div>
+      <div class="logo-icon" style="background: transparent;"><img src="iconnn.jpg" alt="Sahayak Logo"
+          style="width: 100%; height: 100%; object-fit: contain; border-radius: 10px;"></div>
       Sahayak
     </a>
     <div class="map-nav-title">
       <span class="nav-badge">LIVE</span>
-      Safe Maps — Brightest Path
+      Illumination Maps — Brightest Path
     </div>
     <div class="map-nav-actions">
       <button class="btn-sos" id="sosBtn" title="Emergency SOS"><i data-lucide="siren"></i> SOS</button>
@@ -129,7 +132,7 @@
           <div class="legend">
             <div class="legend-item">
               <span class="legend-color" style="background: #00ff88;"></span>
-              <span>Brightest (Safe) Route</span>
+              <span>Brightest (Well-Lit) Route</span>
             </div>
             <div class="legend-item">
               <span class="legend-color" style="background: #667eea;"></span>
@@ -137,7 +140,7 @@
             </div>
             <div class="legend-item">
               <span class="legend-color danger-pulse" style="background: #ff4757;"></span>
-              <span>Danger Zone</span>
+              <span>Unlit Area</span>
             </div>
             <div class="legend-item">
               <span class="legend-color" style="background: #ffa502;"></span>
@@ -145,7 +148,7 @@
             </div>
             <div class="legend-item">
               <span class="legend-color" style="background: #2ed573;"></span>
-              <span>Safe Place (Police / Hospital)</span>
+              <span>Active Area (Police / Hospital)</span>
             </div>
             <div class="legend-item">
               <span class="legend-color" style="background: #FFD700;"></span>
@@ -154,23 +157,23 @@
           </div>
         </div>
 
-        <!-- Danger Zones List -->
+        <!-- Unlit Areas List -->
         <div class="sidebar-section">
           <h3 class="sidebar-title">
-            <span class="title-icon"><i data-lucide="alert-triangle"></i></span> Nearby Danger Zones
+            <span class="title-icon"><i data-lucide="alert-triangle"></i></span> Nearby Unlit Areas
           </h3>
           <div class="danger-list" id="dangerList">
-            <p class="placeholder-text">Find a route to see nearby danger zones</p>
+            <p class="placeholder-text">Find a route to see nearby unlit areas</p>
           </div>
         </div>
 
-        <!-- Safe Places List -->
+        <!-- Active Areas List -->
         <div class="sidebar-section">
           <h3 class="sidebar-title">
-            <span class="title-icon"><i data-lucide="hospital"></i></span> Nearby Safe Places
+            <span class="title-icon"><i data-lucide="hospital"></i></span> Nearby Active Areas
           </h3>
           <div class="safe-list" id="safeList">
-            <p class="placeholder-text">Find a route to see nearby safe places</p>
+            <p class="placeholder-text">Find a route to see nearby active areas</p>
           </div>
         </div>
       </div>
@@ -185,10 +188,10 @@
         <button class="map-control-btn" id="locateBtn" title="Go to my location">
           <span><i data-lucide="map-pin"></i></span>
         </button>
-        <button class="map-control-btn" id="toggleDangerBtn" title="Toggle danger zones">
+        <button class="map-control-btn" id="toggleDangerBtn" title="Toggle unlit areas">
           <span><i data-lucide="alert-triangle"></i></span>
         </button>
-        <button class="map-control-btn" id="toggleSafeBtn" title="Toggle safe places">
+        <button class="map-control-btn" id="toggleSafeBtn" title="Toggle active areas">
           <span><i data-lucide="hospital"></i></span>
         </button>
         <button class="map-control-btn" id="clearRouteBtn" title="Clear routes">

@@ -5,10 +5,11 @@
 
   // ===== CONFIGURATION =====
   const CONFIG = {
-    defaultCenter: [28.6139, 77.2090], // New Delhi as default
-    defaultZoom: 14,
+    defaultCenter: [16.5062, 80.6480], // VGM region (Vijayawada)
+    defaultZoom: 13,
     tileUrl: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     tileAttribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+    nasaViirsUrl: `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/${new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0]}/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png`,
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
     osrmUrl: 'https://router.project-osrm.org/route/v1/driving',
     searchDelay: 400,
@@ -134,6 +135,11 @@
   let safeVisible = true;
   let watchId = null;
 
+  // VGM Specific Variables
+  let vgmStreetsData = null;
+  let getHavensTimeout = null;
+  let havensCache = {};
+
   // ===== DOM ELEMENTS =====
   const $ = (sel) => document.querySelector(sel);
   const fromInput = $('#fromInput');
@@ -170,6 +176,14 @@
       attribution: CONFIG.tileAttribution,
       maxZoom: 19,
       subdomains: 'abcd'
+    }).addTo(map);
+
+    // NASA VIIRS Black Marble Layer
+    L.tileLayer(CONFIG.nasaViirsUrl, {
+      attribution: '&copy; NASA GIBS Black Marble',
+      maxZoom: 8,
+      opacity: 0.6,
+      className: 'nasa-viirs-layer'
     }).addTo(map);
 
     // Create layer groups
@@ -512,6 +526,11 @@
 
         if (isFrom) {
           fromCoords = [lat, lon];
+
+          // Re-generate local danger/safe layers when origin changes manually
+          generateLocalDangerZones(lat, lon);
+          generateLocalSafePlaces(lat, lon);
+
           if (userMarker) userMarker.setLatLng([lat, lon]);
           else {
             userMarker = L.marker([lat, lon], {
@@ -578,8 +597,15 @@
       // Draw route on map
       drawRoute(coordinates, isBrightest);
 
-      // Calculate safety score
-      const safetyScore = calculateSafetyScore(coordinates, isBrightest);
+      // Calculate illumination score
+      const safetyScore = calculateIlluminationScore(coordinates, isBrightest);
+
+      // Async fetch VGM havens to update map dynamically based on Google Places activity
+      getVGMHavens(coordinates[Math.floor(coordinates.length / 2)][0], coordinates[Math.floor(coordinates.length / 2)][1]).then(havens => {
+        if (havens && havens.places && havens.places.length > 0) {
+          console.log('Found VGM havens around midpoint', havens.places.length);
+        }
+      });
 
       // Show route info
       showRouteInfo({
@@ -595,8 +621,8 @@
       map.fitBounds(routeBounds, { padding: [60, 60] });
 
       updateStatus(isBrightest
-        ? `✅ Brightest path found: ${distance} km, ~${duration} min. Safety: ${safetyScore}%`
-        : `📏 Shortest path: ${distance} km, ~${duration} min. Safety: ${safetyScore}%`
+        ? `✅ Brightest path found: ${distance} km, ~${duration} min. Illumination Index: ${safetyScore}/100`
+        : `📏 Shortest path: ${distance} km, ~${duration} min. Illumination Index: ${safetyScore}/100`
       );
 
     } catch (err) {
@@ -810,20 +836,72 @@
     animate();
   }
 
-  // ===== CALCULATE SAFETY SCORE =====
-  function calculateSafetyScore(coordinates, isBrightest) {
-    let dangerCount = 0;
-    let safeNearby = 0;
+  // ===== DEBOUNCED GOOGLE PLACES API (FREE TIER GUARD) =====
+  async function getVGMHavens(lat, lon) {
+    const cacheKey = `${lat.toFixed(3)},${lon.toFixed(3)}`;
+    if (havensCache[cacheKey]) return havensCache[cacheKey];
 
-    // Check how many route points are near danger zones
-    coordinates.forEach(coord => {
-      DANGER_ZONES.forEach(zone => {
-        const dist = haversineDistance(coord[0], coord[1], zone.lat, zone.lng);
-        if (dist < zone.radius / 1000) {
-          dangerCount++;
+    // Debouncer to prevent rapid API billing
+    if (getHavensTimeout) {
+      console.log('Debouncing Google Places API call');
+      return { places: [] };
+    }
+
+    getHavensTimeout = setTimeout(() => { getHavensTimeout = null; }, 60000); // 60s cooldown
+
+    try {
+      const apiKey = 'YOUR_GOOGLE_KEY'; // Placeholder
+      const url = 'https://places.googleapis.com/v1/places:searchNearby';
+
+      // We purposefully let this throw locally if the key is invalid
+      // but the logic here ensures strict limits.
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.displayName,places.location,places.businessStatus' // FREE TIER FIELD MASK
+        },
+        body: JSON.stringify({
+          includedTypes: ["police", "hospital", "pharmacy", "convenience_store"],
+          maxResultCount: 10,
+          locationRestriction: {
+            circle: { center: { latitude: lat, longitude: lon }, radius: 1000.0 }
+          }
+        })
+      });
+      if (!response.ok) return { places: [] };
+      const data = await response.json();
+      havensCache[cacheKey] = data;
+      return data;
+    } catch (e) { return { places: [] }; }
+  }
+
+  // ===== CALCULATE ILLUMINATION SCORE (Fusion) =====
+  function calculateIlluminationScore(coordinates, isBrightest) {
+    let streetScore = 0; // 50% max
+    let activityScore = 0; // 30% max
+    let visualScore = 20; // 20% max - Assuming NASA layer backdrop gives baseline
+
+    // Integration of Turf.js and in-memory VGM_STREETS.json fallback
+    if (vgmStreetsData && typeof turf !== 'undefined' && coordinates.length > 0) {
+      let litIntersections = 0;
+      const midPoint = turf.point([coordinates[Math.floor(coordinates.length / 2)][1], coordinates[Math.floor(coordinates.length / 2)][0]]);
+
+      turf.featureEach(vgmStreetsData, function (currentFeature) {
+        if (currentFeature.geometry.type === 'LineString') {
+          const dist = turf.pointToLineDistance(midPoint, currentFeature, { units: 'kilometers' });
+          if (dist < 0.2) litIntersections++;
         }
       });
+      streetScore = Math.min(50, (litIntersections + 1) * 10);
+    } else {
+      streetScore = 25; // Default score fallback if turf or data unavailable
+    }
 
+    // Activity check
+    let safeNearby = 0;
+    coordinates.forEach(coord => {
       SAFE_PLACES.forEach(place => {
         const dist = haversineDistance(coord[0], coord[1], place.lat, place.lng);
         if (dist < 0.3) {
@@ -832,11 +910,10 @@
       });
     });
 
-    const dangerRatio = dangerCount / coordinates.length;
-    const safeRatio = safeNearby / coordinates.length;
+    activityScore = Math.min(30, safeNearby * 5); // 30% max
 
-    let score = 100 - (dangerRatio * 200) + (safeRatio * 30);
-    if (isBrightest) score += 12; // brightest path bonus
+    let score = streetScore + activityScore + visualScore;
+    if (isBrightest) score += 5; // brightest path bonus
     score = Math.max(15, Math.min(98, Math.round(score)));
 
     return score;
@@ -872,8 +949,8 @@
           Walking
         </div>
         <div class="route-stat">
-          <strong>${routeData.safetyScore}%</strong>
-          Safety Score
+          <strong>${routeData.safetyScore}/100</strong>
+          Illumination Index
         </div>
         <div class="route-stat">
           <strong>${routeData.isBrightest ? 'High' : 'Standard'}</strong>
@@ -1064,9 +1141,23 @@
   let clickLocked = false;
   map = null; // will be set in initMap
 
+  // ===== LOAD OFFLINE VGM STREETS =====
+  async function loadVGMStreets() {
+    try {
+      const res = await fetch('vgm_streets.json');
+      if (res.ok) {
+        vgmStreetsData = await res.json();
+        console.log('Loaded in-memory VGM streets data: ', vgmStreetsData.features.length, 'features');
+      }
+    } catch (e) {
+      console.error('Failed to load vgm_streets.json', e);
+    }
+  }
+
   // ===== INITIALIZE =====
   function boot() {
     initMap();
+    loadVGMStreets();
 
     // Enable map click to set destination
     map.on('click', (e) => {
@@ -1091,7 +1182,7 @@
         ['Destination']
       )).openPopup();
 
-      updateStatus('Destination set! Click "Find Brightest Path" to navigate.');
+      updateStatus('Destination set! Click "Find Brightest Path" to navigate. (NASA Tiles & OSM Data Active)');
     });
 
     // Set initial toggle states

@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // ===== SOS BUTTON =====
-  const sosBtn = document.getElementById('sosBtn');n
+  const sosBtn = document.getElementById('sosBtn');
   if (sosBtn) {
     sosBtn.addEventListener('click', (e) => {
       e.preventDefault();

@@ -3,28 +3,55 @@
 (function () {
   'use strict';
 
+  const RUNTIME_CONFIG = window.SAHAYAK_CONFIG || {};
+
   // ===== CONFIGURATION =====
+  function getSatelliteDate() {
+      const d = new Date();
+      d.setHours(12, 0, 0, 0);
+      d.setDate(d.getDate() - 1);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+  }
+
   const CONFIG = {
     defaultCenter: [16.5062, 80.6480], // VGM region (Vijayawada)
     defaultZoom: 13,
     tileUrl: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     tileAttribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
-    nasaViirsUrl: `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/${new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0]}/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png`,
+    nasaViirsUrl: `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/${getSatelliteDate()}/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png`,
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
     osrmUrl: 'https://router.project-osrm.org/route/v1/driving',
     searchDelay: 400,
+    googlePlacesApiKey: RUNTIME_CONFIG.googlePlacesApiKey || null,
     routeColors: {
       brightest: '#00ff88',
       shortest: '#667eea',
       danger: '#ff4757',
       caution: '#ffa502'
-    }
+    },
+    // Vector Tile Configuration (OPTIONAL - for datasets > 10MB)
+    // For 100% free deployment, keep useVectorTiles: false
+    // GeoJSON under 5MB works perfectly on modern smartphones
+    useVectorTiles: false, 
+    
+    // Mapbox (requires credit card - NOT recommended for free projects)
+    // mapboxToken: 'YOUR_MAPBOX_TOKEN',
+    // mapboxTilesetId: 'YOUR_USERNAME.YOUR_TILESET_ID',
+    
+    // Protomaps (FREE - no API key needed! Recommended alternative)
+    // Download your .pmtiles file from https://app.protomaps.com/
+    protomapsUrl: null, // e.g., './vgm_streets.pmtiles'
+    
+    vectorTileUrl: null
   };
 
   // ===== DANGER ZONES DATABASE =====
   // These are sample known danger zones — in a production app, these would come from a database
   // with community reports + official crime data. Adjust coordinates to your city.
-  let DANGER_ZONES = [
+  let DANGER_ZONES = []; /*
     {
       id: 1,
       name: 'Isolated Underpass',
@@ -102,10 +129,10 @@
       type: 'abandoned',
       reports: 27
     }
-  ];
+  */
 
   // ===== SAFE PLACES DATABASE =====
-  let SAFE_PLACES = [
+  let SAFE_PLACES = []; /*
     { id: 1, name: 'Central Police Station', lat: 28.6155, lng: 77.2100, type: 'police', icon: 'shield-check', open: '24/7' },
     { id: 2, name: 'City Hospital', lat: 28.6100, lng: 77.2090, type: 'hospital', icon: 'hospital', open: '24/7' },
     { id: 3, name: 'MedPlus Pharmacy', lat: 28.6170, lng: 77.2060, type: 'pharmacy', icon: 'pill', open: '24/7' },
@@ -116,7 +143,7 @@
     { id: 8, name: 'Community Center', lat: 28.6070, lng: 77.2060, type: 'community', icon: 'landmark', open: '8AM-10PM' },
     { id: 9, name: 'Night Patrol Checkpoint', lat: 28.6145, lng: 77.2210, type: 'patrol', icon: 'flashlight', open: '8PM-6AM' },
     { id: 10, name: 'Emergency Booth — Park Rd', lat: 28.6175, lng: 77.2175, type: 'booth', icon: 'phone-call', open: '24/7' }
-  ];
+  */
 
   // ===== STATE =====
   let map;
@@ -134,6 +161,7 @@
   let dangerVisible = true;
   let safeVisible = true;
   let watchId = null;
+  const COMMUNITY_REPORTS_STORAGE_KEY = 'sahayak-community-reports-v1';
 
   // VGM Specific Variables
   let vgmStreetsData = null;
@@ -162,6 +190,22 @@
   const sidebarToggle = $('#sidebarToggle');
   const mapSidebar = $('#mapSidebar');
   const sosBtn = $('#sosBtn');
+  const reportNameInput = $('#reportName');
+  const reportSeverityInput = $('#reportSeverity');
+  const reportLatInput = $('#reportLat');
+  const reportLngInput = $('#reportLng');
+  const reportRadiusInput = $('#reportRadius');
+  const reportTypeInput = $('#reportType');
+  const reportDescriptionInput = $('#reportDescription');
+  const useMapCenterReportBtn = $('#useMapCenterReportBtn');
+  const saveReportBtn = $('#saveReportBtn');
+  const reportImportInput = $('#reportImportInput');
+  const exportReportsBtn = $('#exportReportsBtn');
+  const clearReportsBtn = $('#clearReportsBtn');
+
+  function isSecureForGeolocation() {
+    return window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  }
 
   // ===== INITIALIZE MAP =====
   function initMap() {
@@ -188,7 +232,14 @@
 
     // Create layer groups
     dangerLayerGroup = L.layerGroup().addTo(map);
-    safeLayerGroup = L.layerGroup().addTo(map);
+    safeLayerGroup = typeof L.markerClusterGroup === 'function'
+      ? L.markerClusterGroup({
+        disableClusteringAtZoom: 16,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        maxClusterRadius: 40
+      }).addTo(map)
+      : L.layerGroup().addTo(map);
     routeLayerGroup = L.layerGroup().addTo(map);
 
     // Add danger zones & safe places to map
@@ -210,6 +261,11 @@
   function getUserLocation(silent = false) {
     if (!navigator.geolocation) {
       if (!silent) updateStatus('Geolocation not supported by your browser.');
+      return;
+    }
+
+    if (!isSecureForGeolocation()) {
+      updateStatus('Location access requires HTTPS. Open this app on GitHub Pages, Vercel, Netlify, or a secure tunnel such as ngrok.');
       return;
     }
 
@@ -251,10 +307,6 @@
 
         fromInput.value = `My Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
 
-        // Generate danger zones relative to user's real location
-        generateLocalDangerZones(latitude, longitude);
-        generateLocalSafePlaces(latitude, longitude);
-
         updateStatus('Live location acquired. Enter your destination.');
 
         // Start watching position for live updates
@@ -294,6 +346,7 @@
   }
 
   // ===== GENERATE DANGER ZONES NEAR USER =====
+  /*
   function generateLocalDangerZones(lat, lng) {
     // Create realistic danger zones around the user's actual location
     DANGER_ZONES = [
@@ -388,6 +441,7 @@
     updateSafeList();
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
+  */
 
   // ===== ADD DANGER ZONES TO MAP =====
   function addDangerZones() {
@@ -436,7 +490,7 @@
         `<i data-lucide="${place.icon}"></i> ${place.name}`,
         `Type: ${place.type.charAt(0).toUpperCase() + place.type.slice(1)}<br/>Hours: <strong>${place.open}</strong>`,
         ['safe'],
-        ['Safe Place', place.open === '24/7' ? '24/7 Open' : 'Limited Hours']
+        ['High-Activity Area', place.open === '24/7' ? '24/7 Open' : 'Limited Hours']
       ));
 
       safeLayerGroup.addLayer(marker);
@@ -527,10 +581,6 @@
         if (isFrom) {
           fromCoords = [lat, lon];
 
-          // Re-generate local danger/safe layers when origin changes manually
-          generateLocalDangerZones(lat, lon);
-          generateLocalSafePlaces(lat, lon);
-
           if (userMarker) userMarker.setLatLng([lat, lon]);
           else {
             userMarker = L.marker([lat, lon], {
@@ -603,7 +653,7 @@
       // Async fetch VGM havens to update map dynamically based on Google Places activity
       getVGMHavens(coordinates[Math.floor(coordinates.length / 2)][0], coordinates[Math.floor(coordinates.length / 2)][1]).then(havens => {
         if (havens && havens.places && havens.places.length > 0) {
-          console.log('Found VGM havens around midpoint', havens.places.length);
+          syncSafePlacesFromGoogle(havens.places);
         }
       });
 
@@ -619,10 +669,13 @@
       // Fit map to route
       const routeBounds = L.latLngBounds(coordinates);
       map.fitBounds(routeBounds, { padding: [60, 60] });
+      const scoreLabel = safetyScore === 'Unknown'
+        ? 'Data unavailable for this area'
+        : `Illumination Index: ${safetyScore}/100`;
 
       updateStatus(isBrightest
-        ? `✅ Brightest path found: ${distance} km, ~${duration} min. Illumination Index: ${safetyScore}/100`
-        : `📏 Shortest path: ${distance} km, ~${duration} min. Illumination Index: ${safetyScore}/100`
+        ? `Brightest path found: ${distance} km, ~${duration} min. ${scoreLabel}`
+        : `Shortest path: ${distance} km, ~${duration} min. ${scoreLabel}`
       );
 
     } catch (err) {
@@ -849,17 +902,18 @@
 
     getHavensTimeout = setTimeout(() => { getHavensTimeout = null; }, 60000); // 60s cooldown
 
+    if (!CONFIG.googlePlacesApiKey || CONFIG.googlePlacesApiKey === 'YOUR_GOOGLE_KEY') {
+      return { places: [] };
+    }
+
     try {
-      const apiKey = 'YOUR_GOOGLE_KEY'; // Placeholder
       const url = 'https://places.googleapis.com/v1/places:searchNearby';
 
-      // We purposefully let this throw locally if the key is invalid
-      // but the logic here ensures strict limits.
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Goog-Api-Key': apiKey,
+          'X-Goog-Api-Key': CONFIG.googlePlacesApiKey,
           'X-Goog-FieldMask': 'places.displayName,places.location,places.businessStatus' // FREE TIER FIELD MASK
         },
         body: JSON.stringify({
@@ -877,42 +931,131 @@
     } catch (e) { return { places: [] }; }
   }
 
+  function syncSafePlacesFromGoogle(places) {
+    const normalized = places
+      .filter(place => place.location && typeof place.location.latitude === 'number' && typeof place.location.longitude === 'number')
+      .map((place, index) => ({
+        id: `google-${index}-${place.location.latitude}-${place.location.longitude}`,
+        name: place.displayName?.text || 'Nearby Active Area',
+        lat: place.location.latitude,
+        lng: place.location.longitude,
+        type: 'active_area',
+        icon: 'shield-check',
+        open: place.businessStatus || 'OPERATIONAL'
+      }));
+
+    SAFE_PLACES = normalized;
+    safeLayerGroup.clearLayers();
+    addSafePlaces();
+    updateSafeList();
+  }
+
+  function havenWeight(type) {
+    switch (type) {
+      case 'police':
+      case 'hospital':
+      case 'fire_station':
+        return 1.0;
+      case 'pharmacy':
+      case 'railway_station':
+      case 'bus_station':
+        return 0.75;
+      case 'fuel':
+      case 'convenience':
+      case 'atm':
+        return 0.55;
+      case 'clinic':
+        return 0.45;
+      default:
+        return 0.35;
+    }
+  }
+
+  function reportPenaltyForRoute(coordinates) {
+    if (DANGER_ZONES.length === 0 || typeof turf === 'undefined' || coordinates.length < 2) return 0;
+
+    const routeLine = turf.lineString(coordinates.map(c => [c[1], c[0]]));
+    const routeBuffer = turf.buffer(routeLine, 0.05, { units: 'kilometers' });
+    let penalty = 0;
+
+    DANGER_ZONES.forEach((zone) => {
+      const zonePoint = turf.point([zone.lng, zone.lat]);
+      if (turf.booleanPointInPolygon(zonePoint, routeBuffer)) {
+        penalty += zone.severity === 'high' ? 18 : 9;
+      }
+    });
+
+    return penalty;
+  }
+
   // ===== CALCULATE ILLUMINATION SCORE (Fusion) =====
   function calculateIlluminationScore(coordinates, isBrightest) {
-    let streetScore = 0; // 50% max
+    let streetScore = 0; // 55% max
     let activityScore = 0; // 30% max
-    let visualScore = 20; // 20% max - Assuming NASA layer backdrop gives baseline
+    let visualScore = 5; // 5% baseline for urban night-light context
+    let riskPenalty = 0;
 
     // Integration of Turf.js and in-memory VGM_STREETS.json fallback
-    if (vgmStreetsData && typeof turf !== 'undefined' && coordinates.length > 0) {
-      let litIntersections = 0;
-      const midPoint = turf.point([coordinates[Math.floor(coordinates.length / 2)][1], coordinates[Math.floor(coordinates.length / 2)][0]]);
+    if (vgmStreetsData && typeof turf !== 'undefined' && coordinates.length > 1) {
+      let litCoverage = 0;
+      let darkCoverage = 0;
+      let matchedSegments = 0;
+      
+      // Draw a 25-meter (0.025 km) buffer around the entire route to handle noisy GPS
+      const routeLine = turf.lineString(coordinates.map(c => [c[1], c[0]]));
+      const routeBuffer = turf.buffer(routeLine, 0.025, {units: 'kilometers'});
 
       turf.featureEach(vgmStreetsData, function (currentFeature) {
+        // Proxy Tags Fix: If 'lit=yes' is missing, assume trunk, primary, secondary, or commercial highways are lit
+        const props = currentFeature.properties || {};
+        const isExplicitlyLit = props.lit === 'yes';
+        const isProxyLit = props.lit === 'assumed_yes' || ['trunk', 'primary', 'secondary', 'commercial'].includes(props.highway);
+        const isDark = props.lit === 'no';
+
         if (currentFeature.geometry.type === 'LineString') {
-          const dist = turf.pointToLineDistance(midPoint, currentFeature, { units: 'kilometers' });
-          if (dist < 0.2) litIntersections++;
+          // Check if buffer touches the lit street
+          const intersects = turf.booleanIntersects(routeBuffer, currentFeature);
+          if (!intersects) return;
+
+          matchedSegments += 1;
+          if (isExplicitlyLit) litCoverage += 1.0;
+          else if (isProxyLit) litCoverage += 0.72;
+          if (isDark) darkCoverage += 1.0;
         }
       });
-      streetScore = Math.min(50, (litIntersections + 1) * 10);
+
+      if (matchedSegments > 0) {
+        const normalizedCoverage = Math.max(0, (litCoverage - darkCoverage * 0.65) / matchedSegments);
+        streetScore = Math.round(Math.min(55, normalizedCoverage * 55));
+      }
     } else {
-      streetScore = 25; // Default score fallback if turf or data unavailable
+      streetScore = 0; // Cold start default
     }
 
     // Activity check
-    let safeNearby = 0;
-    coordinates.forEach(coord => {
+    let havenSignal = 0;
+    const sampleStep = Math.max(1, Math.floor(coordinates.length / 25));
+    coordinates.filter((_, index) => index % sampleStep === 0).forEach(coord => {
       SAFE_PLACES.forEach(place => {
         const dist = haversineDistance(coord[0], coord[1], place.lat, place.lng);
-        if (dist < 0.3) {
-          safeNearby++;
+        if (dist < 0.2) {
+          havenSignal += havenWeight(place.type);
+        } else if (dist < 0.5) {
+          havenSignal += havenWeight(place.type) * 0.4;
         }
       });
     });
 
-    activityScore = Math.min(30, safeNearby * 5); // 30% max
+    activityScore = Math.min(30, Math.round(havenSignal));
+    riskPenalty = reportPenaltyForRoute(coordinates);
 
-    let score = streetScore + activityScore + visualScore;
+    let score = streetScore + activityScore + visualScore - riskPenalty;
+    
+    // Cold Start Fallback
+    if (streetScore === 0 && activityScore === 0) {
+      return 'Unknown'; 
+    }
+
     if (isBrightest) score += 5; // brightest path bonus
     score = Math.max(15, Math.min(98, Math.round(score)));
 
@@ -923,19 +1066,23 @@
   function showRouteInfo(routeData) {
     routeInfoPanel.style.display = 'block';
 
-    const card = document.createElement('div');
-    card.className = `route-card ${routeData.isBrightest ? 'safe' : 'shortest'}`;
+    const isUnknown = routeData.safetyScore === 'Unknown';
 
-    const badgeHTML = routeData.isBrightest
+    const card = document.createElement('div');
+    card.className = `route-card ${isUnknown ? 'unknown-card' : (routeData.isBrightest ? 'safe' : 'shortest')}`;
+
+    const badgeHTML = routeData.isBrightest && !isUnknown
       ? '<span class="route-badge recommended">✓ Recommended</span>'
       : '';
 
     const walkDuration = Math.ceil(routeData.duration * 3.5); // walking is ~3.5x driving
+    const cardTitle = isUnknown ? 'Data Unavailable for this Area' : (routeData.isBrightest ? '💡 Well-Lit Route' : '📏 Shortest Path');
+    const lightingLevel = isUnknown ? 'Unknown' : (routeData.isBrightest ? 'High' : 'Standard');
 
     card.innerHTML = `
       <div class="route-card-header">
-        <div class="route-card-title">
-          ${routeData.isBrightest ? '💡 Brightest Path' : '📏 Shortest Path'}
+        <div class="route-card-title ${isUnknown ? 'text-gray' : ''}">
+          ${cardTitle}
         </div>
         ${badgeHTML}
       </div>
@@ -949,11 +1096,11 @@
           Walking
         </div>
         <div class="route-stat">
-          <strong>${routeData.safetyScore}/100</strong>
+          <strong>${routeData.safetyScore !== 'Unknown' ? routeData.safetyScore + '/100' : '<span style="color:gray;">Unknown</span>'}</strong>
           Illumination Index
         </div>
         <div class="route-stat">
-          <strong>${routeData.isBrightest ? 'High' : 'Standard'}</strong>
+          <strong>${lightingLevel}</strong>
           Lighting
         </div>
       </div>
@@ -965,6 +1112,10 @@
   // ===== UPDATE DANGER LIST IN SIDEBAR =====
   function updateDangerList() {
     dangerList.innerHTML = '';
+    if (DANGER_ZONES.length === 0) {
+      dangerList.innerHTML = '<p class="placeholder-text">No verified low-light reports loaded for this area yet.</p>';
+      return;
+    }
     DANGER_ZONES.forEach(zone => {
       const item = document.createElement('div');
       item.className = 'danger-item';
@@ -983,6 +1134,10 @@
   // ===== UPDATE SAFE LIST IN SIDEBAR =====
   function updateSafeList() {
     safeList.innerHTML = '';
+    if (SAFE_PLACES.length === 0) {
+      safeList.innerHTML = '<p class="placeholder-text">No active-area data loaded. Add a Google Places key or use a curated civic dataset.</p>';
+      return;
+    }
     SAFE_PLACES.forEach(place => {
       const item = document.createElement('div');
       item.className = 'safe-item';
@@ -1115,6 +1270,83 @@
     }
   });
 
+  if (useMapCenterReportBtn) {
+    useMapCenterReportBtn.addEventListener('click', () => {
+      const center = map.getCenter();
+      populateReportCoordinates(center.lat, center.lng);
+      updateStatus('Report coordinates set from current map center.');
+    });
+  }
+
+  if (saveReportBtn) {
+    saveReportBtn.addEventListener('click', () => {
+      const lat = parseFloat(reportLatInput.value);
+      const lng = parseFloat(reportLngInput.value);
+
+      if (!reportNameInput.value.trim() || Number.isNaN(lat) || Number.isNaN(lng)) {
+        updateStatus('Enter a report title and valid coordinates before saving.');
+        return;
+      }
+
+      DANGER_ZONES.push({
+        id: Date.now(),
+        name: reportNameInput.value.trim(),
+        lat,
+        lng,
+        radius: Math.max(50, parseInt(reportRadiusInput.value || '150', 10)),
+        severity: reportSeverityInput.value === 'high' ? 'high' : 'medium',
+        description: reportDescriptionInput.value.trim() || 'Community-submitted field report.',
+        type: reportTypeInput.value.trim() || 'community_report',
+        reports: 1
+      });
+
+      persistCommunityReports();
+      dangerLayerGroup.clearLayers();
+      addDangerZones();
+      updateDangerList();
+      clearReportForm();
+      populateReportCoordinates(lat, lng);
+      updateStatus('Community report saved locally.');
+    });
+  }
+
+  if (reportImportInput) {
+    reportImportInput.addEventListener('change', async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        applyCommunityReports(data);
+        persistCommunityReports();
+        updateStatus('Community reports imported successfully.');
+      } catch (error) {
+        console.error('Import failed', error);
+        updateStatus('Import failed. Use the same structure as community_reports.example.json.');
+      } finally {
+        reportImportInput.value = '';
+      }
+    });
+  }
+
+  if (exportReportsBtn) {
+    exportReportsBtn.addEventListener('click', () => {
+      exportCommunityReports();
+      updateStatus('Community reports exported as JSON.');
+    });
+  }
+
+  if (clearReportsBtn) {
+    clearReportsBtn.addEventListener('click', () => {
+      DANGER_ZONES = [];
+      localStorage.removeItem(COMMUNITY_REPORTS_STORAGE_KEY);
+      dangerLayerGroup.clearLayers();
+      updateDangerList();
+      updateStatus('Local community reports cleared.');
+    });
+  }
+
   // Clear routes
   clearRouteBtn.addEventListener('click', () => {
     routeLayerGroup.clearLayers();
@@ -1143,21 +1375,255 @@
 
   // ===== LOAD OFFLINE VGM STREETS =====
   async function loadVGMStreets() {
+    // PRIORITY 1: If Protomaps URL is set, use it (FREE, no API key!)
+    if (CONFIG.protomapsUrl) {
+      loadProtomapsTiles();
+      return;
+    }
+    
+    // PRIORITY 2: If Mapbox is configured (requires paid account)
+    if (CONFIG.useVectorTiles && CONFIG.mapboxToken && CONFIG.mapboxTilesetId) {
+      loadMapboxTiles();
+      return;
+    }
+    
+    // DEFAULT: Load GeoJSON directly (RECOMMENDED for files < 5MB)
+    // This is 100% FREE - no accounts, no API keys, no credit cards!
     try {
       const res = await fetch('vgm_streets.json');
       if (res.ok) {
         vgmStreetsData = await res.json();
-        console.log('Loaded in-memory VGM streets data: ', vgmStreetsData.features.length, 'features');
+        console.log('✅ Loaded GeoJSON streets data:', vgmStreetsData.features.length, 'features');
+        console.log('💡 Tip: GeoJSON under 5MB works great on mobile!');
+        
+        // Add GeoJSON layer to map for visualization
+        addStreetsLayer();
       }
     } catch (e) {
-      console.error('Failed to load vgm_streets.json', e);
+      console.error('❌ Failed to load vgm_streets.json:', e);
+      console.log('💡 Make sure vgm_streets.json is in the same folder as safemap.html');
     }
+  }
+
+  async function loadVGMHavens() {
+    try {
+      const res = await fetch('vgm_havens.json');
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const features = Array.isArray(data.features) ? data.features : [];
+
+      SAFE_PLACES = features
+        .filter((feature) => feature.geometry?.type === 'Point' && Array.isArray(feature.geometry.coordinates))
+        .map((feature, index) => {
+          const [lng, lat] = feature.geometry.coordinates;
+          const props = feature.properties || {};
+          return {
+            id: props.osm_id || `local-${index}`,
+            name: props.name || 'Nearby Active Area',
+            lat,
+            lng,
+            type: props.type || 'active_area',
+            icon: props.icon || 'map-pin',
+            open: props.open || 'Unknown'
+          };
+        });
+
+      safeLayerGroup.clearLayers();
+      addSafePlaces();
+      updateSafeList();
+      console.log('Loaded local VGM active places:', SAFE_PLACES.length);
+    } catch (e) {
+      console.error('Failed to load vgm_havens.json', e);
+    }
+  }
+
+  async function loadCommunityReports() {
+    try {
+      const stored = loadStoredCommunityReports();
+      if (stored.length > 0) {
+        applyCommunityReports(stored);
+        return;
+      }
+
+      const res = await fetch('community_reports.json');
+      if (!res.ok) return;
+
+      const data = await res.json();
+      applyCommunityReports(data);
+    } catch (e) {
+      console.error('Failed to load community_reports.json', e);
+    }
+  }
+
+  function normalizeCommunityReports(data) {
+    if (!Array.isArray(data)) return [];
+
+    return data
+      .filter((item) => typeof item.lat === 'number' && typeof item.lng === 'number')
+      .map((item, index) => ({
+        id: item.id || index + 1,
+        name: item.name || 'Reported Low-Visibility Area',
+        lat: item.lat,
+        lng: item.lng,
+        radius: item.radius || 150,
+        severity: item.severity === 'high' ? 'high' : 'medium',
+        description: item.description || 'Community-submitted field report.',
+        type: item.type || 'community_report',
+        reports: item.reports || 1
+      }));
+  }
+
+  function applyCommunityReports(data) {
+    DANGER_ZONES = normalizeCommunityReports(data);
+    dangerLayerGroup.clearLayers();
+    addDangerZones();
+    updateDangerList();
+    console.log('Loaded community danger reports:', DANGER_ZONES.length);
+  }
+
+  function loadStoredCommunityReports() {
+    try {
+      const raw = localStorage.getItem(COMMUNITY_REPORTS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (error) {
+      console.error('Failed to read local community reports', error);
+      return [];
+    }
+  }
+
+  function persistCommunityReports() {
+    try {
+      localStorage.setItem(COMMUNITY_REPORTS_STORAGE_KEY, JSON.stringify(DANGER_ZONES));
+    } catch (error) {
+      console.error('Failed to persist community reports', error);
+    }
+  }
+
+  function clearReportForm() {
+    reportNameInput.value = '';
+    reportSeverityInput.value = 'medium';
+    reportRadiusInput.value = '150';
+    reportTypeInput.value = '';
+    reportDescriptionInput.value = '';
+  }
+
+  function populateReportCoordinates(lat, lng) {
+    reportLatInput.value = lat.toFixed(6);
+    reportLngInput.value = lng.toFixed(6);
+  }
+
+  function exportCommunityReports() {
+    const blob = new Blob([JSON.stringify(DANGER_ZONES, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'community_reports.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  // ===== LOAD PROTOMAPS TILES (FREE - No API Key!) =====
+  // Protomaps: https://protomaps.com - completely free, open-source
+  function loadProtomapsTiles() {
+    console.log('🗺️ Loading Protomaps tiles (FREE - no API key needed)...');
+    
+    // Note: Requires pmtiles.js library to be added to HTML
+    // <script src="https://unpkg.com/pmtiles@2.11.0/dist/index.js"></script>
+    if (typeof pmtiles === 'undefined') {
+      console.error('❌ pmtiles.js not loaded. Add this to your HTML:');
+      console.error('<script src="https://unpkg.com/pmtiles@2.11.0/dist/index.js"><\/script>');
+      console.log('⚠️ Falling back to GeoJSON...');
+      return;
+    }
+    
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', protocol.tile);
+    
+    console.log('✅ Protomaps loaded from:', CONFIG.protomapsUrl);
+    console.log('💡 Protomaps is 100% free - no accounts needed!');
+  }
+
+  // ===== LOAD MAPBOX VECTOR TILES (Paid - Requires Credit Card) =====
+  function loadMapboxTiles() {
+    console.warn('⚠️ Mapbox requires a credit card. Consider Protomaps for free alternative.');
+    
+    if (!L.vectorGrid) {
+      console.error('❌ Leaflet.VectorGrid not loaded. Falling back to GeoJSON.');
+      return;
+    }
+    
+    const vectorUrl = `https://api.mapbox.com/v4/${CONFIG.mapboxTilesetId}/{z}/{x}/{y}.vector.pbf?access_token=${CONFIG.mapboxToken}`;
+    
+    const vectorLayer = L.vectorGrid.protobuf(vectorUrl, {
+      vectorTileLayerStyles: {
+        'vgm_streets': {
+          weight: 3,
+          color: '#FFD700',
+          opacity: 0.8,
+          fill: false
+        },
+        default: {
+          weight: 2,
+          color: '#00ff88',
+          opacity: 0.7
+        }
+      },
+      interactive: true,
+      getFeatureId: function(f) {
+        return f.properties.name || f.id;
+      }
+    });
+    
+    vectorLayer.addTo(map);
+    console.log('✅ Mapbox vector tiles loaded');
+  }
+
+  // ===== ADD STREETS LAYER TO MAP (GeoJSON Mode) =====
+  function addStreetsLayer() {
+    if (!vgmStreetsData) return;
+    
+    const streetsLayer = L.geoJSON(vgmStreetsData, {
+      style: function(feature) {
+        const lighting = feature.properties.lit;
+        const isLit = lighting === 'yes' || lighting === 'assumed_yes';
+        return {
+          color: lighting === 'no' ? '#ff4757' : '#FFD700',
+          weight: 3,
+          opacity: 0.8,
+          dashArray: lighting === 'no' ? '5,5' : (lighting === 'assumed_yes' ? '8,4' : '')
+        };
+      },
+      onEachFeature: function(feature, layer) {
+        const props = feature.properties;
+        const lightingLabel = props.lit === 'yes'
+          ? '✅ Well-lit (mapped)'
+          : props.lit === 'assumed_yes'
+            ? '💡 Likely lit (major road proxy)'
+            : props.lit === 'no'
+              ? '⚠️ Unlit'
+              : 'Unknown';
+        layer.bindPopup(`
+          <b>${props.name || 'Unnamed Street'}</b><br>
+          Type: ${props.highway || 'unknown'}<br>
+          Lighting: ${lightingLabel}
+        `);
+      }
+    });
+    
+    streetsLayer.addTo(map);
   }
 
   // ===== INITIALIZE =====
   function boot() {
     initMap();
     loadVGMStreets();
+    loadVGMHavens();
+    loadCommunityReports();
+    const initialCenter = CONFIG.defaultCenter;
+    populateReportCoordinates(initialCenter[0], initialCenter[1]);
 
     // Enable map click to set destination
     map.on('click', (e) => {

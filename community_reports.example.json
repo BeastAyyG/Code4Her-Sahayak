@@ -1,0 +1,24 @@
+[
+  {
+    "id": 1,
+    "name": "Dark service road near flyover",
+    "lat": 16.5032,
+    "lng": 80.6408,
+    "radius": 180,
+    "severity": "medium",
+    "description": "Low lighting and weak pedestrian visibility after 9 PM.",
+    "type": "lighting_gap",
+    "reports": 2
+  },
+  {
+    "id": 2,
+    "name": "Isolated lane behind market",
+    "lat": 16.4328,
+    "lng": 80.5667,
+    "radius": 150,
+    "severity": "high",
+    "description": "Repeated community reports of harassment risk after shops close.",
+    "type": "community_report",
+    "reports": 4
+  }
+]

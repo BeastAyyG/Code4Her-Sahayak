@@ -92,6 +92,7 @@ Available API endpoints:
 - `GET /api/status`
 - `GET /api/destinations`
 - `POST /api/scenario`
+- `POST /api/scenario/reset`
 - `POST /api/route`
 
 Supported shared scenarios:

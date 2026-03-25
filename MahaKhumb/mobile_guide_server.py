@@ -29,11 +29,13 @@ from stream_simulator import (
     apply_scenario_to_simulation,
     compute_overload_eta_minutes,
     prediction_confidence,
+    main as regenerate_simulation_state,
 )
 
 
 ROOT = Path(__file__).resolve().parent
 MOBILE_PAGE = ROOT / "mobile_phase2.html"
+VIZ_PAGE = ROOT / "viz_dashboard.html"
 FAVICON = ROOT / "favicon.ico"
 GRAPH_PKL = ROOT / "graph_data.pkl"
 CLUSTER_PKL = ROOT / "cluster_data.pkl"
@@ -407,9 +409,7 @@ def _status_payload(state: RuntimeState) -> dict[str, Any]:
     optimization_explanation = _optimization_explanation_payload(
         report, zone_report, active_scenario
     )
-    quantum_control = _quantum_control_payload(
-        report, qaoa, zone_report, prediction
-    )
+    quantum_control = _quantum_control_payload(report, qaoa, zone_report, prediction)
 
     return {
         "generated_at": _utc_now(),
@@ -481,7 +481,9 @@ def _zone_prediction_payload(
         state_obj.get("current_severity", state_obj.get("severity"))
     )
     previous_severity = _as_float(
-        state_obj.get("previous_severity", state_obj.get("avg_severity", current_severity))
+        state_obj.get(
+            "previous_severity", state_obj.get("avg_severity", current_severity)
+        )
     )
     event_type = str(state_obj.get("latest_event_type", "baseline"))
     overload_eta = state_obj.get("overload_eta_minutes")
@@ -494,7 +496,9 @@ def _zone_prediction_payload(
         "previous_severity": previous_severity,
         "current_severity": current_severity,
         "overload_eta_minutes": overload_eta,
-        "confidence": state_obj.get("confidence", prediction_confidence(current_severity)),
+        "confidence": state_obj.get(
+            "confidence", prediction_confidence(current_severity)
+        ),
     }
 
 
@@ -575,7 +579,9 @@ def _quantum_control_payload(
         default=0,
     )
     route_options = _as_int(
-        zone_report.get("route_options_per_group", config.get("route_options_per_group")),
+        zone_report.get(
+            "route_options_per_group", config.get("route_options_per_group")
+        ),
         default=0,
     )
     candidate_routes = groups * route_options
@@ -747,9 +753,7 @@ def _route_payload(
     optimization_explanation = _optimization_explanation_payload(
         report, zone_report, active_scenario
     )
-    quantum_control = _quantum_control_payload(
-        report, qaoa, zone_report, prediction
-    )
+    quantum_control = _quantum_control_payload(report, qaoa, zone_report, prediction)
 
     return HTTPStatus.OK, {
         "generated_at": _utc_now(),
@@ -817,6 +821,24 @@ def _scenario_response(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
             "target_zone": target_zone,
         },
         "state_version": active_scenario.get("state_version", now),
+    }
+
+
+def _scenario_reset_response() -> tuple[int, dict[str, Any]]:
+    try:
+        regenerate_simulation_state()
+    except Exception as exc:
+        return HTTPStatus.INTERNAL_SERVER_ERROR, {
+            "ok": False,
+            "error": f"Failed to reset simulation state: {exc}",
+        }
+
+    reset_at = _utc_now()
+    return HTTPStatus.OK, {
+        "ok": True,
+        "reset_at": reset_at,
+        "active_scenario": None,
+        "state_version": reset_at,
     }
 
 
@@ -895,6 +917,13 @@ def _make_handler(state: RuntimeState):
                 self._send_json(HTTPStatus.OK, _status_payload(state))
                 return
 
+            if path in {"/viz", "/viz/"}:
+                if not VIZ_PAGE.exists():
+                    self._send_json(HTTPStatus.NOT_FOUND, {"error": "viz_dashboard.html not found"})
+                    return
+                self._send_html(HTTPStatus.OK, VIZ_PAGE.read_bytes())
+                return
+
             if path == "/api/destinations":
                 self._send_json(HTTPStatus.OK, _destinations_payload(state))
                 return
@@ -909,6 +938,7 @@ def _make_handler(state: RuntimeState):
                         "/api/status",
                         "/api/destinations",
                         "/api/scenario",
+                        "/api/scenario/reset",
                         "/api/route",
                     ],
                 },
@@ -916,8 +946,13 @@ def _make_handler(state: RuntimeState):
 
         def do_POST(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
-            if path not in {"/api/route", "/api/scenario"}:
+            if path not in {"/api/route", "/api/scenario", "/api/scenario/reset"}:
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": "Unknown endpoint"})
+                return
+
+            if path == "/api/scenario/reset":
+                status, response = _scenario_reset_response()
+                self._send_json(status, response)
                 return
 
             length = _as_int(self.headers.get("Content-Length"), default=0)

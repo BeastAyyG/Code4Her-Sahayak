@@ -389,8 +389,9 @@
       </div>
       <div class="row" style="margin-top:8px;">
         <button id="scenario-button" type="button">Apply Scenario</button>
-        <div class="small" id="scenario-feedback" style="align-self:center;">This updates live advisory severity in the API.</div>
+        <button id="scenario-reset-button" class="secondary" type="button">Reset Baseline</button>
       </div>
+      <div class="small" id="scenario-feedback" style="align-self:center; margin-top:8px;">This updates live advisory severity in the API.</div>
     </section>
 
     <section class="card">
@@ -477,6 +478,7 @@
     const scenarioSelect = document.getElementById("scenario-select");
     const scenarioZone = document.getElementById("scenario-zone");
     const scenarioButton = document.getElementById("scenario-button");
+    const scenarioResetButton = document.getElementById("scenario-reset-button");
     const scenarioFeedback = document.getElementById("scenario-feedback");
     const sourceSelect = document.getElementById("source-select");
     const targetSelect = document.getElementById("target-select");
@@ -958,6 +960,26 @@
       }
     }
 
+    async function resetScenario() {
+      clearError();
+      setLoading(scenarioResetButton, true);
+      try {
+        const result = await fetchJson("/api/scenario/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        sourceFromLocation = null;
+        useLocationBtn.textContent = "Use My Location";
+        scenarioFeedback.textContent = `Baseline restored at ${result.reset_at || "now"}`;
+        await loadBootstrap();
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        setLoading(scenarioResetButton, false);
+      }
+    }
+
     async function loadBootstrap() {
       clearError();
       try {
@@ -1060,6 +1082,7 @@
     useLocationBtn.addEventListener("click", useLocation);
     routeButton.addEventListener("click", requestRoute);
     scenarioButton.addEventListener("click", applyScenario);
+    scenarioResetButton.addEventListener("click", resetScenario);
     setRouteMeta([{ label: "Waiting for route" }]);
 
     loadBootstrap();

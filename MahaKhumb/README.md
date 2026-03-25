@@ -91,7 +91,15 @@ Available API endpoints:
 - `GET /api/health`
 - `GET /api/status`
 - `GET /api/destinations`
+- `POST /api/scenario`
 - `POST /api/route`
+
+Supported shared scenarios:
+
+- `vip_corridor_lock`
+- `bridge_bottleneck`
+- `sudden_surge`
+- `medical_lane_priority`
 
 `/api/route` accepts either node IDs:
 

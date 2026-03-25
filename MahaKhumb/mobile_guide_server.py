@@ -24,9 +24,17 @@ from urllib.parse import urlparse
 
 import networkx as nx
 
+from stream_simulator import (
+    SCENARIO_REGISTRY,
+    apply_scenario_to_simulation,
+    compute_overload_eta_minutes,
+    prediction_confidence,
+)
+
 
 ROOT = Path(__file__).resolve().parent
 MOBILE_PAGE = ROOT / "mobile_phase2.html"
+FAVICON = ROOT / "favicon.ico"
 GRAPH_PKL = ROOT / "graph_data.pkl"
 CLUSTER_PKL = ROOT / "cluster_data.pkl"
 REPORT_JSON = ROOT / "sprint_report.json"
@@ -201,7 +209,6 @@ def _dynamic_snapshot() -> dict[str, Any]:
         _as_int(zone_id): _as_float(_safe_dict(value).get("severity"))
         for zone_id, value in zone_state.items()
     }
-
     return {
         "report": report,
         "simulation": simulation,
@@ -373,6 +380,7 @@ def _status_payload(state: RuntimeState) -> dict[str, Any]:
     qaoa = _safe_dict(snap["qaoa"])
     zone_state = _safe_dict(snap["zone_state"])
     zone_severity = _safe_dict({str(k): v for k, v in snap["zone_severity"].items()})
+    active_scenario = _active_scenario_payload(simulation)
 
     zone_rows: list[dict[str, Any]] = []
     for zone_id, zone_data in zone_state.items():
@@ -393,6 +401,15 @@ def _status_payload(state: RuntimeState) -> dict[str, Any]:
     experiment = _safe_dict(report.get("experiment"))
     stream_summary = _safe_dict(simulation.get("stream"))
     cross_zone = _safe_dict(qaoa.get("cross_zone_result"))
+    focus_zone = _select_focus_zone(zone_state, active_scenario)
+    prediction = _zone_prediction_payload(zone_state, focus_zone)
+    zone_report = _zone_report_payload(report, focus_zone)
+    optimization_explanation = _optimization_explanation_payload(
+        report, zone_report, active_scenario
+    )
+    quantum_control = _quantum_control_payload(
+        report, qaoa, zone_report, prediction
+    )
 
     return {
         "generated_at": _utc_now(),
@@ -421,7 +438,189 @@ def _status_payload(state: RuntimeState) -> dict[str, Any]:
             "exact_cost": _as_float(cross_zone.get("exact_cost")),
             "greedy_gap_pct": _as_float(cross_zone.get("greedy_gap_pct")),
         },
+        "active_scenario": active_scenario,
+        "prediction": prediction,
+        "optimization_explanation": optimization_explanation,
+        "quantum_control": quantum_control,
         "zone_severity": zone_severity,
+    }
+
+
+def _active_scenario_payload(simulation: dict[str, Any]) -> dict[str, Any] | None:
+    active = _safe_dict(simulation.get("active_scenario"))
+    return active or None
+
+
+def _select_focus_zone(
+    zone_state: dict[str, Any], active_scenario: dict[str, Any] | None
+) -> int | None:
+    if active_scenario is not None:
+        target_zone = _as_int(active_scenario.get("target_zone"), default=-1)
+        if str(target_zone) in zone_state:
+            return target_zone
+
+    if not zone_state:
+        return None
+
+    ranked = sorted(
+        zone_state.items(),
+        key=lambda item: _as_float(_safe_dict(item[1]).get("severity")),
+        reverse=True,
+    )
+    return _as_int(ranked[0][0], default=-1) if ranked else None
+
+
+def _zone_prediction_payload(
+    zone_state: dict[str, Any], zone_id: int | None
+) -> dict[str, Any] | None:
+    if zone_id is None or str(zone_id) not in zone_state:
+        return None
+
+    state_obj = _safe_dict(zone_state[str(zone_id)])
+    current_severity = _as_float(
+        state_obj.get("current_severity", state_obj.get("severity"))
+    )
+    previous_severity = _as_float(
+        state_obj.get("previous_severity", state_obj.get("avg_severity", current_severity))
+    )
+    event_type = str(state_obj.get("latest_event_type", "baseline"))
+    overload_eta = state_obj.get("overload_eta_minutes")
+    if overload_eta is None:
+        overload_eta = compute_overload_eta_minutes(current_severity, event_type)
+
+    return {
+        "risk_zone": zone_id,
+        "event_type": event_type,
+        "previous_severity": previous_severity,
+        "current_severity": current_severity,
+        "overload_eta_minutes": overload_eta,
+        "confidence": state_obj.get("confidence", prediction_confidence(current_severity)),
+    }
+
+
+def _zone_report_payload(report: dict[str, Any], zone_id: int | None) -> dict[str, Any]:
+    if zone_id is None:
+        return {}
+    for zone in _safe_list(report.get("zones")):
+        zone_obj = _safe_dict(zone)
+        if _as_int(zone_obj.get("zone"), default=-1) == zone_id:
+            return zone_obj
+    return {}
+
+
+def _selected_solver(report: dict[str, Any], zone_report: dict[str, Any]) -> str:
+    if zone_report and bool(zone_report.get("qaoa_feasible")):
+        return "qaoa"
+
+    experiment = _safe_dict(report.get("experiment"))
+    if _as_int(experiment.get("exact_feasible_count")) > 0:
+        return "exact"
+    return "greedy"
+
+
+def _optimization_explanation_payload(
+    report: dict[str, Any],
+    zone_report: dict[str, Any],
+    active_scenario: dict[str, Any] | None,
+) -> dict[str, Any]:
+    experiment = _safe_dict(report.get("experiment"))
+    selected_solver = _selected_solver(report, zone_report)
+
+    if selected_solver == "qaoa":
+        reason = "shared-edge conflict reduction under active scenario"
+        exact_gap_pct = _as_float(
+            zone_report.get(
+                "qaoa_gap_percent",
+                experiment.get("avg_qaoa_gap_percent"),
+            )
+        )
+        feasible = bool(zone_report.get("qaoa_feasible", True))
+    elif selected_solver == "exact":
+        reason = "classical exact fallback because QAOA metrics were unavailable"
+        exact_gap_pct = 0.0
+        feasible = True
+    else:
+        reason = "greedy classical fallback for feasible response continuity"
+        exact_gap_pct = _as_float(
+            zone_report.get(
+                "greedy_gap_percent",
+                experiment.get("avg_greedy_gap_percent"),
+            )
+        )
+        feasible = True
+
+    if active_scenario is None:
+        reason = reason.replace(" under active scenario", "")
+
+    return {
+        "selected_solver": selected_solver,
+        "exact_gap_pct": exact_gap_pct,
+        "feasible": feasible,
+        "reason": reason,
+    }
+
+
+def _quantum_control_payload(
+    report: dict[str, Any],
+    qaoa: dict[str, Any],
+    zone_report: dict[str, Any],
+    prediction: dict[str, Any] | None,
+) -> dict[str, Any]:
+    experiment = _safe_dict(report.get("experiment"))
+    config = _safe_dict(experiment.get("config"))
+    cross_zone = _safe_dict(qaoa.get("cross_zone_result"))
+
+    groups = _as_int(
+        zone_report.get("group_count", config.get("flow_group_count")),
+        default=0,
+    )
+    route_options = _as_int(
+        zone_report.get("route_options_per_group", config.get("route_options_per_group")),
+        default=0,
+    )
+    candidate_routes = groups * route_options
+    conflict_edges = len(_safe_list(experiment.get("inter_cluster_edges")))
+    risk_severity = _as_float(_safe_dict(prediction).get("current_severity"))
+
+    if candidate_routes >= 9 and risk_severity >= 0.75:
+        suitability = "high"
+    elif candidate_routes >= 6 or risk_severity >= 0.55:
+        suitability = "medium"
+    else:
+        suitability = "low"
+
+    return {
+        "problem_size": {
+            "groups": groups,
+            "candidate_routes": candidate_routes,
+            "conflict_edges": conflict_edges,
+        },
+        "suitability": suitability,
+        "greedy": {
+            "cost": _as_float(
+                zone_report.get("greedy_objective", cross_zone.get("greedy_cost"))
+            ),
+            "runtime_s": 0.0,
+        },
+        "exact": {
+            "cost": _as_float(
+                zone_report.get("exact_objective", cross_zone.get("exact_cost"))
+            ),
+            "runtime_s": 0.0,
+        },
+        "qaoa": {
+            "cost": _as_float(
+                zone_report.get("qaoa_objective", cross_zone.get("exact_cost"))
+            ),
+            "runtime_s": _as_float(zone_report.get("qaoa_time_seconds")),
+            "feasible": bool(zone_report.get("qaoa_feasible", False)),
+            "gap_pct": _as_float(
+                zone_report.get(
+                    "qaoa_gap_percent",
+                    experiment.get("avg_qaoa_gap_percent"),
+                )
+            ),
+        },
     }
 
 
@@ -480,6 +679,10 @@ def _route_payload(
         }
 
     snap = _dynamic_snapshot()
+    report = _safe_dict(snap["report"])
+    simulation = _safe_dict(snap["simulation"])
+    qaoa = _safe_dict(snap["qaoa"])
+    zone_state = _safe_dict(snap["zone_state"])
     zone_severity: dict[int, float] = snap["zone_severity"]
     route_graph = _build_route_graph(state, zone_severity)
 
@@ -528,6 +731,25 @@ def _route_payload(
         }
         for node_id in path_nodes
     ]
+    active_scenario = _active_scenario_payload(simulation)
+    focus_zone = None
+    if active_scenario is not None:
+        target_zone = _as_int(active_scenario.get("target_zone"), default=-1)
+        if target_zone in zones:
+            focus_zone = target_zone
+    if focus_zone is None and zones:
+        focus_zone = max(zones, key=lambda zone_id: zone_severity.get(zone_id, 0.0))
+    if focus_zone is None:
+        focus_zone = _select_focus_zone(zone_state, active_scenario)
+
+    prediction = _zone_prediction_payload(zone_state, focus_zone)
+    zone_report = _zone_report_payload(report, focus_zone)
+    optimization_explanation = _optimization_explanation_payload(
+        report, zone_report, active_scenario
+    )
+    quantum_control = _quantum_control_payload(
+        report, qaoa, zone_report, prediction
+    )
 
     return HTTPStatus.OK, {
         "generated_at": _utc_now(),
@@ -547,8 +769,54 @@ def _route_payload(
             "critical_zones": critical_zones,
             "elevated_zones": elevated_zones,
         },
+        "active_scenario": active_scenario,
         "instructions": instructions,
+        "prediction": prediction,
+        "optimization_explanation": optimization_explanation,
+        "quantum_control": quantum_control,
         "disclaimer": "Guidance is advisory and should be followed along with on-ground police/volunteer directions.",
+    }
+
+
+def _scenario_response(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+    scenario_id = str(payload.get("scenario_id", "")).strip()
+    target_zone = _as_int(payload.get("target_zone"), default=-1)
+    if scenario_id not in SCENARIO_REGISTRY:
+        return HTTPStatus.BAD_REQUEST, {
+            "error": "scenario_id must be one of: "
+            + ", ".join(SCENARIO_REGISTRY.keys())
+        }
+    if target_zone < 0:
+        return HTTPStatus.BAD_REQUEST, {"error": "target_zone is required"}
+
+    simulation = _load_json(SIMULATION_JSON)
+    if not simulation:
+        return HTTPStatus.NOT_FOUND, {
+            "error": "simulation_state.json not found; run the pipeline first"
+        }
+
+    now = _utc_now()
+    try:
+        updated = apply_scenario_to_simulation(
+            simulation,
+            scenario_id,
+            target_zone,
+            applied_at=now,
+        )
+    except ValueError as exc:
+        return HTTPStatus.BAD_REQUEST, {"error": str(exc)}
+
+    SIMULATION_JSON.write_text(json.dumps(updated, indent=2), encoding="utf-8")
+    active_scenario = _safe_dict(updated.get("active_scenario"))
+
+    return HTTPStatus.OK, {
+        "ok": True,
+        "applied_at": active_scenario.get("applied_at", now),
+        "scenario": {
+            "scenario_id": scenario_id,
+            "target_zone": target_zone,
+        },
+        "state_version": active_scenario.get("state_version", now),
     }
 
 
@@ -572,6 +840,13 @@ def _make_handler(state: RuntimeState):
             self.end_headers()
             self.wfile.write(html_bytes)
 
+        def _send_icon(self, status: int, icon_bytes: bytes) -> None:
+            self.send_response(status)
+            self.send_header("Content-Type", "image/x-icon")
+            self.send_header("Content-Length", str(len(icon_bytes)))
+            self.end_headers()
+            self.wfile.write(icon_bytes)
+
         def do_OPTIONS(self) -> None:  # noqa: N802
             self.send_response(HTTPStatus.NO_CONTENT)
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -581,6 +856,16 @@ def _make_handler(state: RuntimeState):
 
         def do_GET(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
+            if path == "/favicon.ico":
+                if FAVICON.exists():
+                    self._send_icon(HTTPStatus.OK, FAVICON.read_bytes())
+                else:
+                    self._send_json(
+                        HTTPStatus.NOT_FOUND,
+                        {"error": "favicon.ico not found"},
+                    )
+                return
+
             if path in {"/", "/mobile", "/mobile/"}:
                 if not MOBILE_PAGE.exists():
                     self._send_json(
@@ -623,6 +908,7 @@ def _make_handler(state: RuntimeState):
                         "/api/health",
                         "/api/status",
                         "/api/destinations",
+                        "/api/scenario",
                         "/api/route",
                     ],
                 },
@@ -630,7 +916,7 @@ def _make_handler(state: RuntimeState):
 
         def do_POST(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
-            if path != "/api/route":
+            if path not in {"/api/route", "/api/scenario"}:
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": "Unknown endpoint"})
                 return
 
@@ -645,10 +931,14 @@ def _make_handler(state: RuntimeState):
                 )
                 return
 
-            status, response = _route_payload(state, _safe_dict(payload))
+            normalized_payload = _safe_dict(payload)
+            if path == "/api/scenario":
+                status, response = _scenario_response(normalized_payload)
+            else:
+                status, response = _route_payload(state, normalized_payload)
             self._send_json(status, response)
 
-        def log_message(self, fmt: str, *args: Any) -> None:
+        def log_message(self, format: str, *args: Any) -> None:
             # keep console output clean for demo operators
             return
 

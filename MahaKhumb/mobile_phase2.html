@@ -161,9 +161,189 @@
     .small { font-size: 0.82rem; color: var(--muted); }
     .row { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
     .hidden { display: none; }
+    .map-shell {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top right, rgba(11, 111, 107, 0.18), transparent 32%),
+        linear-gradient(180deg, #fbf8f0, #f1ead9);
+      min-height: 280px;
+      margin-top: 10px;
+    }
+    .map-stage {
+      width: 100%;
+      aspect-ratio: 16 / 11;
+      display: block;
+    }
+    .map-overlay {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 252, 245, 0.92);
+      border: 1px solid rgba(216, 208, 191, 0.95);
+      box-shadow: 0 10px 28px rgba(32, 38, 47, 0.08);
+      backdrop-filter: blur(8px);
+    }
+    .map-overlay strong {
+      display: block;
+      font-size: 0.88rem;
+      margin-bottom: 2px;
+      color: var(--ink);
+    }
+    .map-overlay span {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+    .chip {
+      border: 1px solid #d6d0c0;
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: #fff;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    .chip.route {
+      border-color: #8eb9b5;
+      color: var(--accent);
+      background: #edf7f6;
+    }
+    .chip.alert {
+      border-color: #efb1b1;
+      color: #9f1c1c;
+      background: #fff3f3;
+    }
+    .chip.solver {
+      border-color: #c8b6ef;
+      color: #6d28d9;
+      background: #f5f0ff;
+    }
+    .map-legend {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 10px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: #465262;
+    }
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(32, 38, 47, 0.2);
+      flex: 0 0 auto;
+    }
+    .legend-swatch.route-line {
+      width: 16px;
+      height: 4px;
+      border-radius: 999px;
+      border: none;
+      background: var(--accent);
+    }
     @media (max-width: 560px) {
       .grid,
       .row { grid-template-columns: 1fr; }
+      .map-overlay {
+        position: static;
+        border-radius: 0 0 18px 18px;
+        border-left: 0;
+        border-right: 0;
+        border-bottom: 0;
+      }
+      .map-legend {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    .route-banner {
+      display: none;
+      margin-top: 10px;
+      border: 1px solid #f1c27d;
+      background: linear-gradient(135deg, #fff5dd, #fffaf0);
+      color: #8a4b00;
+      border-radius: 14px;
+      padding: 11px 12px;
+      font-weight: 700;
+      box-shadow: 0 8px 18px rgba(138, 75, 0, 0.08);
+    }
+    .route-banner.active {
+      display: block;
+    }
+    .explanation-card {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(180deg, #fffdf8, #f9f4e8);
+      padding: 12px;
+    }
+    .explanation-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .explanation-item {
+      border: 1px solid #e9dfcc;
+      background: rgba(255,255,255,0.9);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .explanation-item strong {
+      display: block;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+    .explanation-item span {
+      display: block;
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .countdown-box {
+      margin-top: 10px;
+      border-radius: 14px;
+      padding: 10px 12px;
+      border: 1px solid #cde7e4;
+      background: #eff9f8;
+      color: #115e59;
+      font-weight: 700;
+    }
+    .countdown-box.warn {
+      border-color: #f0c27b;
+      background: #fff6e5;
+      color: #9a5300;
+    }
+    .countdown-box.stable {
+      border-color: #b7ddb9;
+      background: #f2fcf3;
+      color: #166534;
+    }
+    @media (max-width: 560px) {
+      .explanation-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -185,6 +365,32 @@
         <div class="kpi"><strong id="kpi-cross">--</strong>Cross-zone cohorts</div>
       </div>
       <p id="top-zones" class="small" style="margin-top:8px;">Top risk zones: --</p>
+      <p id="scenario-summary" class="small" style="margin-top:6px;">Active scenario: none</p>
+      <p id="prediction-summary" class="small" style="margin-top:6px;">Prediction: --</p>
+      <p id="optimization-summary" class="small" style="margin-top:6px;">Optimization: --</p>
+    </section>
+
+    <section class="card">
+      <h2>Scenario Control</h2>
+      <div class="row">
+        <div>
+          <label for="scenario-select">Scenario</label>
+          <select id="scenario-select">
+            <option value="vip_corridor_lock">vip_corridor_lock</option>
+            <option value="bridge_bottleneck">bridge_bottleneck</option>
+            <option value="sudden_surge">sudden_surge</option>
+            <option value="medical_lane_priority">medical_lane_priority</option>
+          </select>
+        </div>
+        <div>
+          <label for="scenario-zone">Target zone</label>
+          <input id="scenario-zone" type="number" min="0" step="1" value="4">
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="scenario-button" type="button">Apply Scenario</button>
+        <div class="small" id="scenario-feedback" style="align-self:center;">This updates live advisory severity in the API.</div>
+      </div>
     </section>
 
     <section class="card">
@@ -212,9 +418,44 @@
     <section class="card">
       <h2>Guidance</h2>
       <div id="route-summary" class="small">No route calculated yet.</div>
+      <div class="chip-row" id="route-meta">
+        <span class="chip">Waiting for route</span>
+      </div>
+      <div id="reroute-banner" class="route-banner"></div>
+      <div id="countdown-box" class="countdown-box stable">No immediate overload forecast.</div>
+      <div id="explanation-card" class="explanation-card hidden">
+        <h3 style="font-size:1rem; margin-bottom:4px;">Why this route was selected</h3>
+        <p id="route-why" class="small">Route explanation will appear after calculation.</p>
+        <div class="explanation-grid">
+          <div class="explanation-item"><strong>Risk zone</strong><span id="exp-risk-zone">--</span></div>
+          <div class="explanation-item"><strong>Severity shift</strong><span id="exp-severity">--</span></div>
+          <div class="explanation-item"><strong>Overload forecast</strong><span id="exp-overload">--</span></div>
+          <div class="explanation-item"><strong>Selected solver</strong><span id="exp-solver">--</span></div>
+          <div class="explanation-item"><strong>Solver confidence</strong><span id="exp-confidence">--</span></div>
+          <div class="explanation-item"><strong>Gap / feasibility</strong><span id="exp-gap">--</span></div>
+        </div>
+      </div>
+      <div class="map-shell">
+        <svg id="route-map" class="map-stage" viewBox="0 0 1000 680" role="img" aria-label="Route map"></svg>
+        <div class="map-overlay" id="map-overlay">
+          <div>
+            <strong>Live route canvas</strong>
+            <span>Hub positions and safe corridor will render here.</span>
+          </div>
+          <span class="mono" id="map-bounds">Awaiting data</span>
+        </div>
+      </div>
+      <div class="map-legend">
+        <div class="legend-item"><span class="legend-swatch route-line"></span>Route corridor</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#16a34a;"></span>Stable zone</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#d97706;"></span>Elevated zone</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#dc2626;"></span>Critical zone</div>
+      </div>
       <ul id="instruction-list" class="list" style="margin-top:8px;"></ul>
       <p id="route-zone-path" class="small" style="margin-top:8px;"></p>
       <p id="route-node-path" class="small" style="margin-top:6px;"></p>
+      <p id="route-prediction" class="small" style="margin-top:6px;"></p>
+      <p id="route-optimization" class="small" style="margin-top:6px;"></p>
     </section>
 
     <section class="card">
@@ -230,15 +471,38 @@
   <script>
     const postureEl = document.getElementById("posture");
     const topZonesEl = document.getElementById("top-zones");
+    const scenarioSummaryEl = document.getElementById("scenario-summary");
+    const predictionSummaryEl = document.getElementById("prediction-summary");
+    const optimizationSummaryEl = document.getElementById("optimization-summary");
+    const scenarioSelect = document.getElementById("scenario-select");
+    const scenarioZone = document.getElementById("scenario-zone");
+    const scenarioButton = document.getElementById("scenario-button");
+    const scenarioFeedback = document.getElementById("scenario-feedback");
     const sourceSelect = document.getElementById("source-select");
     const targetSelect = document.getElementById("target-select");
     const routeButton = document.getElementById("route-button");
     const useLocationBtn = document.getElementById("use-location");
     const errorBox = document.getElementById("error-box");
     const routeSummary = document.getElementById("route-summary");
+    const routeMeta = document.getElementById("route-meta");
     const instructionList = document.getElementById("instruction-list");
     const routeZonePath = document.getElementById("route-zone-path");
     const routeNodePath = document.getElementById("route-node-path");
+    const routePrediction = document.getElementById("route-prediction");
+    const routeOptimization = document.getElementById("route-optimization");
+    const rerouteBanner = document.getElementById("reroute-banner");
+    const countdownBox = document.getElementById("countdown-box");
+    const explanationCard = document.getElementById("explanation-card");
+    const routeWhy = document.getElementById("route-why");
+    const expRiskZone = document.getElementById("exp-risk-zone");
+    const expSeverity = document.getElementById("exp-severity");
+    const expOverload = document.getElementById("exp-overload");
+    const expSolver = document.getElementById("exp-solver");
+    const expConfidence = document.getElementById("exp-confidence");
+    const expGap = document.getElementById("exp-gap");
+    const routeMap = document.getElementById("route-map");
+    const mapOverlay = document.getElementById("map-overlay");
+    const mapBounds = document.getElementById("map-bounds");
 
     const kpiEvents = document.getElementById("kpi-events");
     const kpiQaoa = document.getElementById("kpi-qaoa");
@@ -246,7 +510,95 @@
     const kpiCross = document.getElementById("kpi-cross");
 
     let hubs = [];
+    let latestStatus = null;
     let sourceFromLocation = null;
+
+    function solverLabel(selectedSolver) {
+      if (selectedSolver === "qaoa") return "quantum-assisted";
+      return String(selectedSolver || "n/a");
+    }
+
+    function confidenceText(prediction, explanation) {
+      const gap = explanation?.exact_gap_pct;
+      if (prediction?.confidence) {
+        return `${prediction.confidence} confidence`;
+      }
+      if (typeof gap === "number") {
+        return gap <= 1 ? "high confidence" : "medium confidence";
+      }
+      return "baseline confidence";
+    }
+
+    function gapText(explanation) {
+      const gap = explanation?.exact_gap_pct;
+      const feasible = explanation?.feasible;
+      if (typeof gap === "number") {
+        return `${gap.toFixed(2)}% gap | ${feasible ? "feasible" : "not feasible"}`;
+      }
+      return feasible ? "feasible local assignment" : "fallback assignment";
+    }
+
+    function countdownText(prediction) {
+      const eta = Number(prediction?.overload_eta_minutes);
+      if (Number.isFinite(eta) && eta > 0 && Number(prediction?.current_severity || 0) >= 0.45) {
+        return {
+          text: `Predicted overload in ${Math.round(eta)} min`,
+          className: "countdown-box warn",
+        };
+      }
+      return {
+        text: "No immediate overload forecast",
+        className: "countdown-box stable",
+      };
+    }
+
+    function renderExplanation(routeData) {
+      const prediction = routeData?.prediction || {};
+      const explanation = routeData?.optimization_explanation || {};
+      const scenario = latestStatus?.active_scenario || null;
+      const route = routeData?.route || {};
+      const riskZone = prediction?.risk_zone;
+      const currentSeverity = Number(prediction?.current_severity || 0);
+      const previousSeverity = Number(prediction?.previous_severity || 0);
+      const routeAffected = scenario && (Number(scenario.target_zone) === Number(riskZone) || (Array.isArray(route.zone_path) && route.zone_path.includes(Number(scenario.target_zone))));
+
+      explanationCard.classList.remove("hidden");
+      const solverText = solverLabel(explanation.selected_solver);
+      let whyText = "Route is in stable posture.";
+      if (routeAffected && scenario) {
+        whyText = `Route changed because ${scenario.scenario_id.replaceAll("_", " ")} raised pressure around Zone ${scenario.target_zone}. ${explanation.reason || ""}`.trim();
+      } else if (currentSeverity > previousSeverity + 0.05) {
+        whyText = `Route adjusted as Zone ${riskZone} severity increased from ${previousSeverity.toFixed(2)} to ${currentSeverity.toFixed(2)}. ${explanation.reason || ""}`.trim();
+      } else if (currentSeverity >= 0.45) {
+        whyText = `Route remains adaptive around Zone ${riskZone} because live risk is elevated. ${explanation.reason || ""}`.trim();
+      } else {
+        whyText = explanation.reason === "matched classical optimum for this local zone"
+          ? `Route is in stable posture and ${solverText} matched classical optimum for this local zone.`
+          : `Route is in stable posture. ${explanation.reason || "Baseline local route remains best."}`.trim();
+      }
+      routeWhy.textContent = whyText;
+
+      expRiskZone.textContent = riskZone ?? "--";
+      expSeverity.textContent = `${previousSeverity.toFixed(2)} -> ${currentSeverity.toFixed(2)}`;
+      expOverload.textContent = Number.isFinite(Number(prediction?.overload_eta_minutes)) && Number(prediction?.overload_eta_minutes) > 0
+        ? `${prediction.overload_eta_minutes} min`
+        : "No immediate overload";
+      expSolver.textContent = solverText;
+      expConfidence.textContent = confidenceText(prediction, explanation);
+      expGap.textContent = gapText(explanation);
+
+      const countdown = countdownText(prediction);
+      countdownBox.className = countdown.className;
+      countdownBox.textContent = countdown.text;
+
+      if (routeAffected && scenario) {
+        rerouteBanner.className = "route-banner active";
+        rerouteBanner.textContent = `Route updated after ${scenario.scenario_id.replaceAll("_", " ")} in Zone ${scenario.target_zone}`;
+      } else {
+        rerouteBanner.className = "route-banner";
+        rerouteBanner.textContent = "";
+      }
+    }
 
     function showError(message) {
       errorBox.style.display = "block";
@@ -272,6 +624,18 @@
       if (name === "critical") return "critical";
       if (name === "elevated") return "elevated";
       return "stable";
+    }
+
+    function severityColor(severity) {
+      if (severity >= 0.75) return "#dc2626";
+      if (severity >= 0.45) return "#d97706";
+      return "#16a34a";
+    }
+
+    function statusColorForPosture(posture) {
+      if (posture === "critical") return "#dc2626";
+      if (posture === "elevated") return "#d97706";
+      return "#0b6f6b";
     }
 
     function setLoading(button, loading) {
@@ -314,6 +678,192 @@
       });
     }
 
+    function setRouteMeta(chips) {
+      routeMeta.innerHTML = "";
+      chips.forEach((chip) => {
+        const span = document.createElement("span");
+        span.className = "chip" + (chip.kind ? ` ${chip.kind}` : "");
+        span.textContent = chip.label;
+        routeMeta.appendChild(span);
+      });
+    }
+
+    function normalizePoint(point) {
+      const lat = Number(point?.lat);
+      const lon = Number(point?.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return null;
+      }
+      return {
+        lat,
+        lon,
+        zone_id: point?.zone_id ?? null,
+        label: point?.label || "",
+      };
+    }
+
+    function pointFromMeta(meta, fallbackLabel) {
+      if (!meta) return null;
+      if (Number.isFinite(Number(meta.source_lat)) && Number.isFinite(Number(meta.source_lon))) {
+        return {
+          lat: Number(meta.source_lat),
+          lon: Number(meta.source_lon),
+          zone_id: null,
+          label: fallbackLabel,
+        };
+      }
+      if (Number.isFinite(Number(meta.input_lat)) && Number.isFinite(Number(meta.input_lon))) {
+        return {
+          lat: Number(meta.input_lat),
+          lon: Number(meta.input_lon),
+          zone_id: null,
+          label: fallbackLabel,
+        };
+      }
+      return normalizePoint({
+        lat: meta.lat,
+        lon: meta.lon,
+        zone_id: meta.zone_id,
+        label: fallbackLabel,
+      });
+    }
+
+    function buildViewport(points) {
+      const valid = points.map(normalizePoint).filter(Boolean);
+      if (!valid.length) {
+        return null;
+      }
+
+      let minLat = valid[0].lat;
+      let maxLat = valid[0].lat;
+      let minLon = valid[0].lon;
+      let maxLon = valid[0].lon;
+
+      valid.forEach((point) => {
+        minLat = Math.min(minLat, point.lat);
+        maxLat = Math.max(maxLat, point.lat);
+        minLon = Math.min(minLon, point.lon);
+        maxLon = Math.max(maxLon, point.lon);
+      });
+
+      const latSpan = Math.max(maxLat - minLat, 0.0008);
+      const lonSpan = Math.max(maxLon - minLon, 0.0008);
+      return {
+        minLat: minLat - latSpan * 0.14,
+        maxLat: maxLat + latSpan * 0.14,
+        minLon: minLon - lonSpan * 0.14,
+        maxLon: maxLon + lonSpan * 0.14,
+      };
+    }
+
+    function projectPoint(point, viewport, width, height) {
+      const normalized = normalizePoint(point);
+      if (!normalized || !viewport) {
+        return null;
+      }
+      const lonSpan = Math.max(viewport.maxLon - viewport.minLon, 0.0001);
+      const latSpan = Math.max(viewport.maxLat - viewport.minLat, 0.0001);
+      const x = ((normalized.lon - viewport.minLon) / lonSpan) * width;
+      const y = height - (((normalized.lat - viewport.minLat) / latSpan) * height);
+      return { x, y, ...normalized };
+    }
+
+    function renderMap(context) {
+      const width = 1000;
+      const height = 680;
+      const zoneSeverity = context.zoneSeverity || {};
+      const hubPoints = (context.hubs || []).map((hub) => ({
+        lat: hub.lat,
+        lon: hub.lon,
+        zone_id: hub.zone_id,
+        label: hub.label,
+      }));
+      const routePoints = Array.isArray(context.pathCoords) ? context.pathCoords : [];
+      const sourcePoint = pointFromMeta(context.source, "Source");
+      const targetPoint = pointFromMeta(context.target, "Target");
+      const viewport = buildViewport([
+        ...hubPoints,
+        ...routePoints,
+        sourcePoint,
+        targetPoint,
+      ].filter(Boolean));
+
+      if (!viewport) {
+        routeMap.innerHTML = "";
+        mapOverlay.querySelector("strong").textContent = "Route canvas unavailable";
+        mapOverlay.querySelector("span").textContent = "No coordinate data loaded yet.";
+        mapBounds.textContent = "No bounds";
+        return;
+      }
+
+      const grid = [];
+      for (let idx = 1; idx < 5; idx += 1) {
+        const x = (width / 5) * idx;
+        const y = (height / 5) * idx;
+        grid.push(`<line x1="${x}" y1="0" x2="${x}" y2="${height}" stroke="rgba(32,38,47,0.08)" stroke-dasharray="10 14" />`);
+        grid.push(`<line x1="0" y1="${y}" x2="${width}" y2="${y}" stroke="rgba(32,38,47,0.08)" stroke-dasharray="10 14" />`);
+      }
+
+      const projectedRoute = routePoints
+        .map((point) => projectPoint(point, viewport, width, height))
+        .filter(Boolean);
+      const routeLine = projectedRoute.length > 1
+        ? `<polyline points="${projectedRoute.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ")}" fill="none" stroke="#0b6f6b" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+           <polyline points="${projectedRoute.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ")}" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95" />`
+        : "";
+
+      const hubsSvg = hubPoints.map((hub) => {
+        const projected = projectPoint(hub, viewport, width, height);
+        if (!projected) return "";
+        const severity = Number(zoneSeverity[String(hub.zone_id)] || 0);
+        return `<g>
+          <circle cx="${projected.x.toFixed(1)}" cy="${projected.y.toFixed(1)}" r="11" fill="rgba(255,255,255,0.88)" />
+          <circle cx="${projected.x.toFixed(1)}" cy="${projected.y.toFixed(1)}" r="6.5" fill="${severityColor(severity)}" />
+        </g>`;
+      }).join("");
+
+      const routeDots = projectedRoute.map((point, index) => {
+        const radius = index === 0 || index === projectedRoute.length - 1 ? 8 : 4;
+        return `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${radius}" fill="#0b6f6b" stroke="rgba(255,255,255,0.85)" stroke-width="2" />`;
+      }).join("");
+
+      const markerSvg = [sourcePoint, targetPoint].map((point, index) => {
+        const projected = projectPoint(point, viewport, width, height);
+        if (!projected) return "";
+        const color = index === 0 ? "#2563eb" : "#7c3aed";
+        const label = index === 0 ? "S" : "T";
+        return `<g>
+          <circle cx="${projected.x.toFixed(1)}" cy="${projected.y.toFixed(1)}" r="15" fill="${color}" stroke="rgba(255,255,255,0.95)" stroke-width="3" />
+          <text x="${projected.x.toFixed(1)}" y="${(projected.y + 5).toFixed(1)}" text-anchor="middle" font-family="Outfit, sans-serif" font-size="14" font-weight="700" fill="#ffffff">${label}</text>
+        </g>`;
+      }).join("");
+
+      const posture = context.posture || "stable";
+      routeMap.innerHTML = `
+        <defs>
+          <linearGradient id="routeGlow" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="rgba(11,111,107,0.20)" />
+            <stop offset="100%" stop-color="rgba(11,111,107,0.02)" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="${width}" height="${height}" fill="url(#routeGlow)" />
+        ${grid.join("")}
+        ${routeLine}
+        ${hubsSvg}
+        ${routeDots}
+        ${markerSvg}
+      `;
+
+      mapOverlay.querySelector("strong").textContent = projectedRoute.length > 1
+        ? `Live route canvas • ${posture.toUpperCase()}`
+        : "Hub posture overview";
+      mapOverlay.querySelector("span").textContent = projectedRoute.length > 1
+        ? "Source and target pins are locked to the active guidance route."
+        : "Select a route to replace the hub view with a live corridor.";
+      mapBounds.textContent = `${viewport.minLat.toFixed(4)},${viewport.minLon.toFixed(4)} -> ${viewport.maxLat.toFixed(4)},${viewport.maxLon.toFixed(4)}`;
+      mapBounds.style.color = statusColorForPosture(posture);
+    }
+
     function renderStatus(status) {
       const posture = (status.posture || "stable").toLowerCase();
       postureEl.className = "posture " + postureClass(posture);
@@ -327,18 +877,39 @@
       kpiQaoa.textContent = String(status.benchmark?.qaoa_feasible_count ?? "--");
       kpiMatch.textContent = `${Number(status.benchmark?.qaoa_optimal_match_percent || 0).toFixed(0)}%`;
       kpiCross.textContent = String(status.cross_zone?.n_cross_zone ?? "--");
+
+      const activeScenario = status.active_scenario;
+      scenarioSummaryEl.textContent = activeScenario
+        ? `Active scenario: ${activeScenario.scenario_id} on Zone ${activeScenario.target_zone}`
+        : "Active scenario: none";
+
+      const prediction = status.prediction || {};
+      predictionSummaryEl.textContent = `Prediction: Zone ${prediction.risk_zone ?? "--"} | ${Number(prediction.previous_severity || 0).toFixed(2)} -> ${Number(prediction.current_severity || 0).toFixed(2)} | overload ETA ${prediction.overload_eta_minutes ?? "--"} min | confidence ${prediction.confidence || "n/a"}`;
+
+      const explanation = status.optimization_explanation || {};
+      optimizationSummaryEl.textContent = `Optimization: ${solverLabel(explanation.selected_solver)} | gap ${explanation.exact_gap_pct ?? "n/a"}% | ${explanation.reason || "n/a"}`;
     }
 
     function renderRoute(data) {
       const route = data.route || {};
       const zonePath = Array.isArray(route.zone_path) ? route.zone_path : [];
       const pathNodes = Array.isArray(route.path_nodes) ? route.path_nodes : [];
+      const posture = String(route.posture || "stable");
 
       routeSummary.innerHTML =
         `Distance: <span class="mono">${Number(route.distance_m || 0).toFixed(0)} m</span> | ` +
         `ETA: <span class="mono">${Number(route.eta_minutes || 0).toFixed(1)} min</span> | ` +
-        `Posture: <span class="mono">${String(route.posture || "stable")}</span> | ` +
+        `Posture: <span class="mono">${posture}</span> | ` +
         `Avg severity: <span class="mono">${Number(route.avg_zone_severity || 0).toFixed(3)}</span>`;
+      setRouteMeta([
+        { label: `Nodes ${pathNodes.length || 0}`, kind: "route" },
+        { label: `Zones ${zonePath.length || 0}` },
+        { label: `Critical ${Array.isArray(route.critical_zones) ? route.critical_zones.length : 0}` },
+        { label: `${latestStatus?.active_scenario?.scenario_id || "baseline"}`, kind: latestStatus?.active_scenario ? "alert" : "" },
+        { label: solverLabel(data.optimization_explanation?.selected_solver), kind: "solver" },
+        { label: `${data.prediction?.confidence || "baseline"} confidence` },
+        { label: `Zone ${data.prediction?.risk_zone ?? "--"}` },
+      ]);
 
       instructionList.innerHTML = "";
       const steps = Array.isArray(data.instructions) ? data.instructions : [];
@@ -350,6 +921,41 @@
 
       routeZonePath.innerHTML = `Zone path: <span class="mono">${zonePath.join(" -> ") || "n/a"}</span>`;
       routeNodePath.innerHTML = `Node path: <span class="mono">${pathNodes.slice(0, 12).join(" -> ")}${pathNodes.length > 12 ? " -> ..." : ""}</span>`;
+      const prediction = data.prediction || {};
+      routePrediction.textContent = `Prediction: Zone ${prediction.risk_zone ?? "--"} | ${Number(prediction.previous_severity || 0).toFixed(2)} -> ${Number(prediction.current_severity || 0).toFixed(2)} | overload ETA ${prediction.overload_eta_minutes ?? "--"} min | confidence ${prediction.confidence || "n/a"}`;
+      const explanation = data.optimization_explanation || {};
+      routeOptimization.textContent = `Optimization: ${solverLabel(explanation.selected_solver)} | gap ${explanation.exact_gap_pct ?? "n/a"}% | ${explanation.reason || "n/a"}`;
+      renderExplanation(data);
+      renderMap({
+        hubs,
+        pathCoords: Array.isArray(route.path_coords) ? route.path_coords : [],
+        source: data.source,
+        target: data.target,
+        zoneSeverity: latestStatus?.zone_severity || {},
+        posture,
+      });
+    }
+
+    async function applyScenario() {
+      clearError();
+      setLoading(scenarioButton, true);
+      try {
+        const payload = {
+          scenario_id: scenarioSelect.value,
+          target_zone: Number(scenarioZone.value),
+        };
+        const result = await fetchJson("/api/scenario", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        scenarioFeedback.textContent = `Applied ${result.scenario?.scenario_id || payload.scenario_id} on Zone ${result.scenario?.target_zone ?? payload.target_zone}`;
+        await loadBootstrap();
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        setLoading(scenarioButton, false);
+      }
     }
 
     async function loadBootstrap() {
@@ -359,9 +965,21 @@
           fetchJson("/api/status"),
           fetchJson("/api/destinations")
         ]);
+        latestStatus = status;
         renderStatus(status);
         hubs = Array.isArray(destinations.hubs) ? destinations.hubs : [];
         renderHubs();
+        if (countdownBox.textContent.includes("Loading") || countdownBox.textContent === "No immediate overload forecast.") {
+          const countdown = countdownText(status.prediction || {});
+          countdownBox.className = countdown.className;
+          countdownBox.textContent = countdown.text;
+        }
+        renderMap({
+          hubs,
+          zoneSeverity: status.zone_severity || {},
+          posture: status.posture || "stable",
+          source: sourceFromLocation,
+        });
       } catch (error) {
         showError(error.message);
       }
@@ -387,6 +1005,12 @@
           source_lon: coords.coords.longitude,
         };
         useLocationBtn.textContent = "Location captured";
+        renderMap({
+          hubs,
+          source: sourceFromLocation,
+          zoneSeverity: latestStatus?.zone_severity || {},
+          posture: latestStatus?.posture || "stable",
+        });
       } catch (error) {
         showError("Could not read location. Please allow location permission or use hub selection.");
       } finally {
@@ -435,6 +1059,8 @@
 
     useLocationBtn.addEventListener("click", useLocation);
     routeButton.addEventListener("click", requestRoute);
+    scenarioButton.addEventListener("click", applyScenario);
+    setRouteMeta([{ label: "Waiting for route" }]);
 
     loadBootstrap();
     setInterval(loadBootstrap, 12000);

@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import time
+from typing import Any
 
 import numpy as np
 
@@ -50,6 +51,41 @@ SURGE_TOPIC = "mahakhumb.crowd-surges"
 STATE_TOPIC = "mahakhumb.zone-state"
 FALLBACK_DIR = Path("cache") / "kafka_fallback"
 
+SCENARIO_REGISTRY: dict[str, dict[str, Any]] = {
+    "vip_corridor_lock": {
+        "event_label": "VIP corridor lock",
+        "severity_delta": 0.34,
+        "severity_multiplier": 1.22,
+        "severity_floor": 0.86,
+        "route_penalty_multiplier": 1.35,
+        "eta_adjustment": 0,
+    },
+    "bridge_bottleneck": {
+        "event_label": "Bridge bottleneck",
+        "severity_delta": 0.28,
+        "severity_multiplier": 1.18,
+        "severity_floor": 0.74,
+        "route_penalty_multiplier": 1.25,
+        "eta_adjustment": 1,
+    },
+    "sudden_surge": {
+        "event_label": "Sudden surge",
+        "severity_delta": 0.42,
+        "severity_multiplier": 1.30,
+        "severity_floor": 0.88,
+        "route_penalty_multiplier": 1.45,
+        "eta_adjustment": -1,
+    },
+    "medical_lane_priority": {
+        "event_label": "Medical lane priority",
+        "severity_delta": 0.18,
+        "severity_multiplier": 1.12,
+        "severity_floor": 0.62,
+        "route_penalty_multiplier": 1.18,
+        "eta_adjustment": 2,
+    },
+}
+
 
 @dataclass
 class StreamEvent:
@@ -60,6 +96,130 @@ class StreamEvent:
     impacted_edges: int
     triggered_at: str
     source: str = "stream_simulator"
+
+
+def _clamp01(value: float) -> float:
+    return max(0.0, min(1.0, value))
+
+
+def severity_posture(severity: float) -> str:
+    if severity >= 0.75:
+        return "critical"
+    if severity >= 0.45:
+        return "elevated"
+    return "stable"
+
+
+def prediction_confidence(severity: float) -> str:
+    posture = severity_posture(severity)
+    confidence_by_posture = {
+        "critical": "high",
+        "elevated": "medium",
+        "stable": "low",
+    }
+    return confidence_by_posture[posture]
+
+
+def compute_overload_eta_minutes(severity: float, event_type: str) -> int | None:
+    if severity < 0.55:
+        return None
+
+    if severity >= 0.85:
+        lower, upper, base = 3, 5, 4
+    elif severity >= 0.70:
+        lower, upper, base = 5, 8, 6
+    else:
+        lower, upper, base = 8, 12, 10
+
+    adjustment = int(SCENARIO_REGISTRY.get(event_type, {}).get("eta_adjustment", 0))
+    return max(lower, min(upper, base + adjustment))
+
+
+def apply_scenario_to_simulation(
+    snapshot: dict[str, Any],
+    scenario_id: str,
+    target_zone: int,
+    *,
+    applied_at: str | None = None,
+) -> dict[str, Any]:
+    if scenario_id not in SCENARIO_REGISTRY:
+        raise ValueError(f"Unsupported scenario_id: {scenario_id}")
+
+    zones_raw = snapshot.get("zones")
+    if not isinstance(zones_raw, dict):
+        raise ValueError("Simulation snapshot is missing zones data")
+
+    target_key = str(int(target_zone))
+    if target_key not in zones_raw:
+        raise ValueError(f"Unknown target_zone: {target_zone}")
+
+    scenario = SCENARIO_REGISTRY[scenario_id]
+    timestamp = applied_at or datetime.now(timezone.utc).isoformat()
+    updated = json.loads(json.dumps(snapshot))
+    zone_state = updated["zones"][target_key]
+
+    previous_severity = float(zone_state.get("severity", 0.0))
+    current_severity = _clamp01(
+        max(
+            previous_severity + float(scenario["severity_delta"]),
+            previous_severity * float(scenario["severity_multiplier"]),
+            float(scenario["severity_floor"]),
+        )
+    )
+
+    previous_event_count = float(zone_state.get("event_count", 0.0))
+    new_event_count = previous_event_count + 1.0
+    previous_avg = float(zone_state.get("avg_severity", previous_severity))
+    zone_state["avg_severity"] = (
+        ((previous_avg * previous_event_count) + current_severity) / new_event_count
+        if new_event_count > 0
+        else current_severity
+    )
+    zone_state["event_count"] = new_event_count
+    zone_state["peak_severity"] = max(
+        float(zone_state.get("peak_severity", previous_severity)),
+        current_severity,
+    )
+    zone_state["severity"] = current_severity
+    zone_state["latest_event_id"] = f"manual-{scenario_id}-{target_key}"
+    zone_state["latest_event_type"] = scenario_id
+    zone_state["latest_event_label"] = str(scenario["event_label"])
+    zone_state["previous_severity"] = previous_severity
+    zone_state["current_severity"] = current_severity
+    zone_state["scenario_applied_at"] = timestamp
+    zone_state["multiplier"] = float(zone_state.get("multiplier", 1.0)) * float(
+        scenario["severity_multiplier"]
+    )
+    zone_state["stream_cost"] = float(zone_state.get("stream_cost", 0.0)) * float(
+        scenario["route_penalty_multiplier"]
+    )
+    zone_state["route_penalty_multiplier"] = float(scenario["route_penalty_multiplier"])
+    zone_state["overload_eta_minutes"] = compute_overload_eta_minutes(
+        current_severity, scenario_id
+    )
+    zone_state["confidence"] = prediction_confidence(current_severity)
+
+    events = updated.get("events")
+    if isinstance(events, list):
+        events.append(
+            {
+                "event_id": zone_state["latest_event_id"],
+                "zone_id": int(target_zone),
+                "event_type": scenario_id,
+                "severity": current_severity,
+                "impacted_edges": 0,
+                "triggered_at": timestamp,
+                "source": "scenario_api",
+            }
+        )
+
+    updated["active_scenario"] = {
+        "scenario_id": scenario_id,
+        "target_zone": int(target_zone),
+        "applied_at": timestamp,
+        "state_version": timestamp,
+    }
+    return updated
 
 
 def _load_cluster_data() -> dict[str, object]:
@@ -113,7 +273,7 @@ def _generate_events(cluster_data: dict[str, object]) -> list[StreamEvent]:
         "procession_surge",
         "bottleneck_alert",
         "medical_diversion",
-        "vip_corridor_lock",
+        *SCENARIO_REGISTRY.keys(),
     ]
 
     events: list[StreamEvent] = []

@@ -1,0 +1,23 @@
+kumbh_env/
+__pycache__/
+*.pyc
+.playwright-cli/
+cache/
+tools/
+
+graph_data.pkl
+cluster_data.pkl
+qaoa_results.pkl
+pipeline_run.json
+sprint_report.json
+sprint_report.md
+judges_brief.md
+results_table.csv
+predictive_state.json
+simulation_state.json
+demo_dashboard.html
+demo_dashboard_3.html
+
+output_*.png
+Example txt file.txt
+Another example txt file.txt

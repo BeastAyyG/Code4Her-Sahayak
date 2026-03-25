@@ -1,0 +1,14 @@
+osmnx>=1.9,<2.1
+networkx>=3.2,<4
+matplotlib>=3.8,<4
+numpy>=1.26,<3
+scikit-learn>=1.4,<2
+geopandas>=0.14,<1
+qiskit>=1.1,<2
+qiskit-aer>=0.14,<1
+qiskit-algorithms>=0.3,<1
+qiskit-optimization>=0.6,<1
+docplex>=2.27,<3
+torch>=2.3,<3
+kafka-python>=2.0,<3
+pyspark>=3.5,<4

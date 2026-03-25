@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>MahaKhumb Mobile Guidance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f6f3eb;
+      --ink: #20262f;
+      --muted: #5f6977;
+      --card: #fffcf5;
+      --line: #d8d0bf;
+      --accent: #0b6f6b;
+      --accent-soft: #d9efed;
+      --ok: #166534;
+      --warn: #a16207;
+      --critical: #b91c1c;
+      --shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, #fffaf0 0%, var(--bg) 45%);
+      color: var(--ink);
+      font-family: "Outfit", "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    .app {
+      width: min(760px, calc(100vw - 20px));
+      margin: 0 auto;
+      padding: 12px 0 30px;
+    }
+    .hero,
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      display: inline-block;
+      border: 1px solid #b8cec8;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 999px;
+      font-size: 0.72rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 4px 9px;
+      margin-bottom: 8px;
+    }
+    h1, h2, h3 { margin: 0 0 7px; }
+    h1 { font-size: clamp(1.4rem, 6vw, 2rem); line-height: 1.15; }
+    h2 { font-size: 1.12rem; }
+    p { margin: 0; color: var(--muted); }
+    .grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+    }
+    .kpi strong {
+      display: block;
+      font-size: 1.15rem;
+      color: var(--accent);
+      margin-bottom: 2px;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #4b5868;
+      margin-bottom: 5px;
+    }
+    select,
+    input,
+    button {
+      width: 100%;
+      font: inherit;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fff;
+      color: var(--ink);
+    }
+    button {
+      border-color: #9bc9c3;
+      background: linear-gradient(180deg, #0e7c77, #0b6f6b);
+      color: #f7fffd;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #fff;
+      color: var(--accent);
+      border-color: #9bc9c3;
+    }
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+    .posture {
+      border-radius: 11px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-weight: 600;
+    }
+    .posture.stable { color: var(--ok); }
+    .posture.elevated { color: var(--warn); }
+    .posture.critical { color: var(--critical); }
+    .list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+    .list li { margin: 6px 0; }
+    .mono {
+      font-family: "JetBrains Mono", Consolas, monospace;
+      background: #f5efe0;
+      border: 1px solid #e7dcc4;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 0.85em;
+      color: #2d3847;
+    }
+    .error {
+      border: 1px solid #efb1b1;
+      background: #fff3f3;
+      color: #9f1c1c;
+      border-radius: 10px;
+      padding: 9px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .loading {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      border-right-color: transparent;
+      border-radius: 50%;
+      vertical-align: -2px;
+      margin-right: 6px;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .small { font-size: 0.82rem; color: var(--muted); }
+    .row { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+    .hidden { display: none; }
+    @media (max-width: 560px) {
+      .grid,
+      .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div class="badge">Phase 2 Citizen Guidance</div>
+      <h1>MahaKhumb Safe Route Assistant</h1>
+      <p>Get live advisory routes using current congestion posture from the command center simulation.</p>
+    </section>
+
+    <section class="card">
+      <h2>Live Situation</h2>
+      <div id="posture" class="posture">Loading posture...</div>
+      <div class="grid" style="margin-top:8px;">
+        <div class="kpi"><strong id="kpi-events">--</strong>Live events</div>
+        <div class="kpi"><strong id="kpi-qaoa">--</strong>QAOA feasible zones</div>
+        <div class="kpi"><strong id="kpi-match">--</strong>QAOA match %</div>
+        <div class="kpi"><strong id="kpi-cross">--</strong>Cross-zone cohorts</div>
+      </div>
+      <p id="top-zones" class="small" style="margin-top:8px;">Top risk zones: --</p>
+    </section>
+
+    <section class="card">
+      <h2>Route Request</h2>
+      <div class="row">
+        <div>
+          <label for="source-select">From (nearest hub)</label>
+          <select id="source-select"></select>
+        </div>
+        <div>
+          <label for="target-select">To (nearest hub)</label>
+          <select id="target-select"></select>
+        </div>
+      </div>
+
+      <div class="small" style="margin:8px 0;">Or use your current location for source.</div>
+      <div class="row">
+        <button id="use-location" class="secondary" type="button">Use My Location</button>
+        <button id="route-button" type="button">Get Safe Route</button>
+      </div>
+
+      <div id="error-box" class="error" style="margin-top:9px;"></div>
+    </section>
+
+    <section class="card">
+      <h2>Guidance</h2>
+      <div id="route-summary" class="small">No route calculated yet.</div>
+      <ul id="instruction-list" class="list" style="margin-top:8px;"></ul>
+      <p id="route-zone-path" class="small" style="margin-top:8px;"></p>
+      <p id="route-node-path" class="small" style="margin-top:6px;"></p>
+    </section>
+
+    <section class="card">
+      <h2>How to Use In Field</h2>
+      <ul class="list">
+        <li>Show this link through QR at entry gates and camp points.</li>
+        <li>Select current place + destination and follow the guidance steps.</li>
+        <li>If police/volunteers give live diversion, follow them first.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    const postureEl = document.getElementById("posture");
+    const topZonesEl = document.getElementById("top-zones");
+    const sourceSelect = document.getElementById("source-select");
+    const targetSelect = document.getElementById("target-select");
+    const routeButton = document.getElementById("route-button");
+    const useLocationBtn = document.getElementById("use-location");
+    const errorBox = document.getElementById("error-box");
+    const routeSummary = document.getElementById("route-summary");
+    const instructionList = document.getElementById("instruction-list");
+    const routeZonePath = document.getElementById("route-zone-path");
+    const routeNodePath = document.getElementById("route-node-path");
+
+    const kpiEvents = document.getElementById("kpi-events");
+    const kpiQaoa = document.getElementById("kpi-qaoa");
+    const kpiMatch = document.getElementById("kpi-match");
+    const kpiCross = document.getElementById("kpi-cross");
+
+    let hubs = [];
+    let sourceFromLocation = null;
+
+    function showError(message) {
+      errorBox.style.display = "block";
+      errorBox.textContent = message;
+    }
+
+    function clearError() {
+      errorBox.style.display = "none";
+      errorBox.textContent = "";
+    }
+
+    async function fetchJson(url, options) {
+      const response = await fetch(url, options);
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const msg = payload.error || `Request failed (${response.status})`;
+        throw new Error(msg);
+      }
+      return payload;
+    }
+
+    function postureClass(name) {
+      if (name === "critical") return "critical";
+      if (name === "elevated") return "elevated";
+      return "stable";
+    }
+
+    function setLoading(button, loading) {
+      if (!button) return;
+      if (loading) {
+        button.disabled = true;
+        button.dataset.prev = button.textContent;
+        button.innerHTML = '<span class="loading"></span>' + button.textContent;
+      } else {
+        button.disabled = false;
+        if (button.dataset.prev) {
+          button.textContent = button.dataset.prev;
+          delete button.dataset.prev;
+        }
+      }
+    }
+
+    function renderHubs() {
+      sourceSelect.innerHTML = "";
+      targetSelect.innerHTML = "";
+      if (!hubs.length) {
+        sourceSelect.innerHTML = '<option value="">No hubs available</option>';
+        targetSelect.innerHTML = '<option value="">No hubs available</option>';
+        return;
+      }
+      hubs.forEach((hub, idx) => {
+        const label = `${hub.label} | node ${hub.node_id}`;
+        const sourceOpt = document.createElement("option");
+        sourceOpt.value = String(hub.node_id);
+        sourceOpt.textContent = label;
+        sourceSelect.appendChild(sourceOpt);
+
+        const targetOpt = document.createElement("option");
+        targetOpt.value = String(hub.node_id);
+        targetOpt.textContent = label;
+        if (idx === 1) {
+          targetOpt.selected = true;
+        }
+        targetSelect.appendChild(targetOpt);
+      });
+    }
+
+    function renderStatus(status) {
+      const posture = (status.posture || "stable").toLowerCase();
+      postureEl.className = "posture " + postureClass(posture);
+      postureEl.textContent = `Posture: ${posture.toUpperCase()} | Max severity ${Number(status.max_zone_severity || 0).toFixed(3)}`;
+
+      const zones = Array.isArray(status.top_zones) ? status.top_zones : [];
+      const zoneText = zones.slice(0, 3).map((z) => `Zone ${z.zone_id} (${Number(z.severity).toFixed(3)})`).join(", ") || "none";
+      topZonesEl.textContent = `Top risk zones: ${zoneText}`;
+
+      kpiEvents.textContent = String(status.stream?.event_count ?? "--");
+      kpiQaoa.textContent = String(status.benchmark?.qaoa_feasible_count ?? "--");
+      kpiMatch.textContent = `${Number(status.benchmark?.qaoa_optimal_match_percent || 0).toFixed(0)}%`;
+      kpiCross.textContent = String(status.cross_zone?.n_cross_zone ?? "--");
+    }
+
+    function renderRoute(data) {
+      const route = data.route || {};
+      const zonePath = Array.isArray(route.zone_path) ? route.zone_path : [];
+      const pathNodes = Array.isArray(route.path_nodes) ? route.path_nodes : [];
+
+      routeSummary.innerHTML =
+        `Distance: <span class="mono">${Number(route.distance_m || 0).toFixed(0)} m</span> | ` +
+        `ETA: <span class="mono">${Number(route.eta_minutes || 0).toFixed(1)} min</span> | ` +
+        `Posture: <span class="mono">${String(route.posture || "stable")}</span> | ` +
+        `Avg severity: <span class="mono">${Number(route.avg_zone_severity || 0).toFixed(3)}</span>`;
+
+      instructionList.innerHTML = "";
+      const steps = Array.isArray(data.instructions) ? data.instructions : [];
+      steps.forEach((step) => {
+        const li = document.createElement("li");
+        li.textContent = step;
+        instructionList.appendChild(li);
+      });
+
+      routeZonePath.innerHTML = `Zone path: <span class="mono">${zonePath.join(" -> ") || "n/a"}</span>`;
+      routeNodePath.innerHTML = `Node path: <span class="mono">${pathNodes.slice(0, 12).join(" -> ")}${pathNodes.length > 12 ? " -> ..." : ""}</span>`;
+    }
+
+    async function loadBootstrap() {
+      clearError();
+      try {
+        const [status, destinations] = await Promise.all([
+          fetchJson("/api/status"),
+          fetchJson("/api/destinations")
+        ]);
+        renderStatus(status);
+        hubs = Array.isArray(destinations.hubs) ? destinations.hubs : [];
+        renderHubs();
+      } catch (error) {
+        showError(error.message);
+      }
+    }
+
+    async function useLocation() {
+      clearError();
+      if (!navigator.geolocation) {
+        showError("Geolocation is not available on this phone/browser.");
+        return;
+      }
+      setLoading(useLocationBtn, true);
+      try {
+        const coords = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            maximumAge: 15000,
+            timeout: 12000,
+          });
+        });
+        sourceFromLocation = {
+          source_lat: coords.coords.latitude,
+          source_lon: coords.coords.longitude,
+        };
+        useLocationBtn.textContent = "Location captured";
+      } catch (error) {
+        showError("Could not read location. Please allow location permission or use hub selection.");
+      } finally {
+        setLoading(useLocationBtn, false);
+      }
+    }
+
+    async function requestRoute() {
+      clearError();
+      setLoading(routeButton, true);
+      try {
+        const targetNode = Number(targetSelect.value);
+        if (!targetNode) {
+          throw new Error("Select a destination first.");
+        }
+
+        let payload;
+        if (sourceFromLocation) {
+          payload = {
+            ...sourceFromLocation,
+            target_node: targetNode,
+          };
+        } else {
+          const sourceNode = Number(sourceSelect.value);
+          if (!sourceNode) {
+            throw new Error("Select a source hub first.");
+          }
+          payload = {
+            source_node: sourceNode,
+            target_node: targetNode,
+          };
+        }
+
+        const routeData = await fetchJson("/api/route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        renderRoute(routeData);
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        setLoading(routeButton, false);
+      }
+    }
+
+    useLocationBtn.addEventListener("click", useLocation);
+    routeButton.addEventListener("click", requestRoute);
+
+    loadBootstrap();
+    setInterval(loadBootstrap, 12000);
+  </script>
+</body>
+</html>

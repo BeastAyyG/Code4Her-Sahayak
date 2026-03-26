@@ -1,4 +1,4 @@
-"""Phase 2 mobile guidance server for MahaKhumb demo.
+"""Phase 2 mobile guidance server for Continuum demo.
 
 Serves a mobile-first web client and JSON APIs backed by generated artifacts:
 - graph_data.pkl
@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import pickle
 import socket
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -24,6 +24,22 @@ from urllib.parse import urlparse
 
 import networkx as nx
 
+from artifact_utils import read_json_file, read_pickle_file, write_json_atomic
+from config import (
+    APP_ENV,
+    DASHBOARD_OUTPUT,
+    DEMO_SITE_OUTPUT,
+    INTERNAL_DASHBOARD_OUTPUT,
+    QAOA_OUTPUT,
+    REPORT_JSON_OUTPUT,
+    SERVER_ALLOWED_ORIGIN,
+    SERVER_ENABLE_CORS,
+    SERVER_MAX_BODY_BYTES,
+    SIMULATION_STATE_OUTPUT,
+    CLUSTER_OUTPUT,
+    GRAPH_OUTPUT,
+    VIZ_DASHBOARD_OUTPUT,
+)
 from stream_simulator import (
     SCENARIO_REGISTRY,
     apply_scenario_to_simulation,
@@ -35,13 +51,17 @@ from stream_simulator import (
 
 ROOT = Path(__file__).resolve().parent
 MOBILE_PAGE = ROOT / "mobile_phase2.html"
-VIZ_PAGE = ROOT / "viz_dashboard.html"
+DEMO_PAGE = DEMO_SITE_OUTPUT
 FAVICON = ROOT / "favicon.ico"
-GRAPH_PKL = ROOT / "graph_data.pkl"
-CLUSTER_PKL = ROOT / "cluster_data.pkl"
-REPORT_JSON = ROOT / "sprint_report.json"
-SIMULATION_JSON = ROOT / "simulation_state.json"
-QAOA_PKL = ROOT / "qaoa_results.pkl"
+GRAPH_PKL = GRAPH_OUTPUT
+CLUSTER_PKL = CLUSTER_OUTPUT
+REPORT_JSON = REPORT_JSON_OUTPUT
+SIMULATION_JSON = SIMULATION_STATE_OUTPUT
+QAOA_PKL = QAOA_OUTPUT
+# Serve the generated dashboards first for submission/runtime stability.
+VIZ_CANDIDATES = [INTERNAL_DASHBOARD_OUTPUT, DASHBOARD_OUTPUT, VIZ_DASHBOARD_OUTPUT]
+MUTATION_LOCK = threading.Lock()
+REQUIRED_RUNTIME_ARTIFACTS = [GRAPH_PKL, CLUSTER_PKL, REPORT_JSON, SIMULATION_JSON, QAOA_PKL]
 
 
 def _as_float(value: Any, default: float = 0.0) -> float:
@@ -67,27 +87,35 @@ def _safe_list(value: Any) -> list[Any]:
 
 
 def _load_json(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
+    payload = read_json_file(path, default={})
+    return payload if isinstance(payload, dict) else {}
 
 
 def _load_pickle(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        with path.open("rb") as handle:
-            payload = pickle.load(handle)
-        return payload if isinstance(payload, dict) else {}
-    except Exception:
-        return {}
+    payload = read_pickle_file(path, default={})
+    return payload if isinstance(payload, dict) else {}
 
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _missing_artifacts(paths: list[Path]) -> list[str]:
+    return [str(path) for path in paths if not path.exists()]
+
+
+def _resolve_viz_page() -> Path | None:
+    for candidate in VIZ_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _validate_coordinate(value: float, *, kind: str) -> float:
+    lower, upper = (-90.0, 90.0) if kind == "lat" else (-180.0, 180.0)
+    if value < lower or value > upper:
+        raise ValueError(f"{kind} must be between {lower} and {upper}")
+    return value
 
 
 def _posture_for_severity(max_severity: float) -> str:
@@ -260,8 +288,8 @@ def _resolve_point(
     if payload.get(lat_key) is None or payload.get(lon_key) is None:
         raise ValueError(f"Provide either {node_key} or both {lat_key}/{lon_key}")
 
-    lat = _as_float(payload.get(lat_key))
-    lon = _as_float(payload.get(lon_key))
+    lat = _validate_coordinate(_as_float(payload.get(lat_key)), kind="lat")
+    lon = _validate_coordinate(_as_float(payload.get(lon_key)), kind="lon")
     node_id, distance = _nearest_node(state.node_coords, lat, lon)
     node_lat, node_lon = state.node_coords.get(node_id, (0.0, 0.0))
     return node_id, {
@@ -672,6 +700,21 @@ def _destinations_payload(state: RuntimeState) -> dict[str, Any]:
     }
 
 
+def _readiness_payload() -> tuple[int, dict[str, Any]]:
+    missing_runtime = _missing_artifacts(REQUIRED_RUNTIME_ARTIFACTS)
+    viz_page = _resolve_viz_page()
+    payload = {
+        "status": "ready" if not missing_runtime else "degraded",
+        "generated_at": _utc_now(),
+        "app_env": APP_ENV,
+        "missing_runtime_artifacts": missing_runtime,
+        "mobile_page_exists": MOBILE_PAGE.exists(),
+        "viz_page": str(viz_page) if viz_page is not None else None,
+    }
+    status_code = HTTPStatus.OK if not missing_runtime else HTTPStatus.SERVICE_UNAVAILABLE
+    return status_code, payload
+
+
 def _route_payload(
     state: RuntimeState, payload: dict[str, Any]
 ) -> tuple[int, dict[str, Any]]:
@@ -793,25 +836,26 @@ def _scenario_response(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
     if target_zone < 0:
         return HTTPStatus.BAD_REQUEST, {"error": "target_zone is required"}
 
-    simulation = _load_json(SIMULATION_JSON)
-    if not simulation:
-        return HTTPStatus.NOT_FOUND, {
-            "error": "simulation_state.json not found; run the pipeline first"
-        }
+    with MUTATION_LOCK:
+        simulation = _load_json(SIMULATION_JSON)
+        if not simulation:
+            return HTTPStatus.NOT_FOUND, {
+                "error": f"{SIMULATION_JSON.name} not found; run the pipeline first"
+            }
 
-    now = _utc_now()
-    try:
-        updated = apply_scenario_to_simulation(
-            simulation,
-            scenario_id,
-            target_zone,
-            applied_at=now,
-        )
-    except ValueError as exc:
-        return HTTPStatus.BAD_REQUEST, {"error": str(exc)}
+        now = _utc_now()
+        try:
+            updated = apply_scenario_to_simulation(
+                simulation,
+                scenario_id,
+                target_zone,
+                applied_at=now,
+            )
+        except ValueError as exc:
+            return HTTPStatus.BAD_REQUEST, {"error": str(exc)}
 
-    SIMULATION_JSON.write_text(json.dumps(updated, indent=2), encoding="utf-8")
-    active_scenario = _safe_dict(updated.get("active_scenario"))
+        write_json_atomic(SIMULATION_JSON, updated)
+        active_scenario = _safe_dict(updated.get("active_scenario"))
 
     return HTTPStatus.OK, {
         "ok": True,
@@ -826,7 +870,8 @@ def _scenario_response(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
 
 def _scenario_reset_response() -> tuple[int, dict[str, Any]]:
     try:
-        regenerate_simulation_state()
+        with MUTATION_LOCK:
+            regenerate_simulation_state()
     except Exception as exc:
         return HTTPStatus.INTERNAL_SERVER_ERROR, {
             "ok": False,
@@ -844,14 +889,30 @@ def _scenario_reset_response() -> tuple[int, dict[str, Any]]:
 
 def _make_handler(state: RuntimeState):
     class MobileHandler(BaseHTTPRequestHandler):
+        def _send_common_headers(self) -> None:
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+            self.send_header(
+                "Content-Security-Policy",
+                "default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; "
+                "img-src 'self' data:; script-src 'self' 'unsafe-inline'; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                "font-src 'self' https://fonts.gstatic.com data:; connect-src 'self'; "
+                "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+            )
+            if SERVER_ENABLE_CORS:
+                self.send_header("Access-Control-Allow-Origin", SERVER_ALLOWED_ORIGIN)
+                self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
         def _send_json(self, status: int, payload: dict[str, Any]) -> None:
             raw = json.dumps(payload, indent=2).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(raw)))
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+            self.send_header("Cache-Control", "no-store")
+            self._send_common_headers()
             self.end_headers()
             self.wfile.write(raw)
 
@@ -859,6 +920,8 @@ def _make_handler(state: RuntimeState):
             self.send_response(status)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(html_bytes)))
+            self.send_header("Cache-Control", "no-store")
+            self._send_common_headers()
             self.end_headers()
             self.wfile.write(html_bytes)
 
@@ -866,14 +929,14 @@ def _make_handler(state: RuntimeState):
             self.send_response(status)
             self.send_header("Content-Type", "image/x-icon")
             self.send_header("Content-Length", str(len(icon_bytes)))
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self._send_common_headers()
             self.end_headers()
             self.wfile.write(icon_bytes)
 
         def do_OPTIONS(self) -> None:  # noqa: N802
             self.send_response(HTTPStatus.NO_CONTENT)
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+            self._send_common_headers()
             self.end_headers()
 
         def do_GET(self) -> None:  # noqa: N802
@@ -907,10 +970,16 @@ def _make_handler(state: RuntimeState):
                     {
                         "status": "ok",
                         "generated_at": _utc_now(),
+                        "app_env": APP_ENV,
                         "graph_nodes": len(state.graph.nodes()),
                         "graph_edges": len(state.graph.edges()),
                     },
                 )
+                return
+
+            if path == "/api/ready":
+                status_code, payload = _readiness_payload()
+                self._send_json(status_code, payload)
                 return
 
             if path == "/api/status":
@@ -918,10 +987,24 @@ def _make_handler(state: RuntimeState):
                 return
 
             if path in {"/viz", "/viz/"}:
-                if not VIZ_PAGE.exists():
-                    self._send_json(HTTPStatus.NOT_FOUND, {"error": "viz_dashboard.html not found"})
+                viz_page = _resolve_viz_page()
+                if viz_page is None:
+                    self._send_json(HTTPStatus.NOT_FOUND, {"error": "No dashboard page found"})
                     return
-                self._send_html(HTTPStatus.OK, VIZ_PAGE.read_bytes())
+                self._send_html(HTTPStatus.OK, viz_page.read_bytes())
+                return
+
+            if path in {"/demo", "/demo/"}:
+                if not DEMO_PAGE.exists():
+                    self._send_json(
+                        HTTPStatus.NOT_FOUND,
+                        {
+                            "error": "No demo page found",
+                            "hint": "Generate surge_demo.html first.",
+                        },
+                    )
+                    return
+                self._send_html(HTTPStatus.OK, DEMO_PAGE.read_bytes())
                 return
 
             if path == "/api/destinations":
@@ -934,7 +1017,9 @@ def _make_handler(state: RuntimeState):
                     "error": "Unknown endpoint",
                     "available": [
                         "/",
+                        "/demo",
                         "/api/health",
+                        "/api/ready",
                         "/api/status",
                         "/api/destinations",
                         "/api/scenario",
@@ -956,6 +1041,12 @@ def _make_handler(state: RuntimeState):
                 return
 
             length = _as_int(self.headers.get("Content-Length"), default=0)
+            if length > SERVER_MAX_BODY_BYTES:
+                self._send_json(
+                    HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                    {"error": f"Request body exceeds {SERVER_MAX_BODY_BYTES} bytes"},
+                )
+                return
             raw = self.rfile.read(length) if length > 0 else b"{}"
             try:
                 payload = json.loads(raw.decode("utf-8"))
@@ -981,14 +1072,25 @@ def _make_handler(state: RuntimeState):
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="MahaKhumb mobile guidance API server")
+    parser = argparse.ArgumentParser(description="Continuum mobile guidance API server")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8088)
     args = parser.parse_args()
 
+    missing_runtime = _missing_artifacts([GRAPH_PKL, CLUSTER_PKL])
+    if missing_runtime:
+        raise SystemExit(
+            "Missing required graph artifacts: "
+            + ", ".join(missing_runtime)
+            + ". Run the pipeline first."
+        )
+    if not MOBILE_PAGE.exists():
+        raise SystemExit(f"Missing mobile client page: {MOBILE_PAGE}")
+
     state = _load_state()
     handler = _make_handler(state)
     server = ThreadingHTTPServer((args.host, args.port), handler)
+    server.daemon_threads = True
 
     local_ip = _local_ip_hint()
     print("[mobile] server started")

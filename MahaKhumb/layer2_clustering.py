@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import pickle
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from sklearn.cluster import SpectralClustering
 
+from artifact_utils import write_pickle_atomic
 from config import (
     CLUSTER_IMAGE_OUTPUT,
     CLUSTER_OUTPUT,
@@ -161,29 +161,28 @@ def main() -> None:
 
     zone_entry_pts_list = {k: list(v) for k, v in zone_entry_pts.items()}
 
-    with CLUSTER_OUTPUT.open("wb") as handle:
-        pickle.dump(
-            {
-                "clusters": clusters,
-                "cluster_subgraphs": cluster_subgraphs,
-                "inter_cluster_dist": inter_cluster_dist,
-                "key_node_ids": key_node_ids,
-                "key_coords": key_coords,
-                "labels": labels,
-                "N_CLUSTERS": n_clusters,
-                "node_zone_map": node_zone_map,
-                "zone_entry_pts": zone_entry_pts_list,
-                "backbone_edges": list(backbone_edges),
-                "centrality": {node_id: float(score) for node_id, score in top_nodes},
-                "kmeans_inertia": 0.0,  # Spectral doesn't produce inertia
-                "config": {
-                    "key_node_count": N_KEY_NODES,
-                    "cluster_count_requested": N_CLUSTERS,
-                    "cluster_count_used": n_clusters,
-                },
+    write_pickle_atomic(
+        CLUSTER_OUTPUT,
+        {
+            "clusters": clusters,
+            "cluster_subgraphs": cluster_subgraphs,
+            "inter_cluster_dist": inter_cluster_dist,
+            "key_node_ids": key_node_ids,
+            "key_coords": key_coords,
+            "labels": labels,
+            "N_CLUSTERS": n_clusters,
+            "node_zone_map": node_zone_map,
+            "zone_entry_pts": zone_entry_pts_list,
+            "backbone_edges": list(backbone_edges),
+            "centrality": {node_id: float(score) for node_id, score in top_nodes},
+            "kmeans_inertia": 0.0,  # Spectral doesn't produce inertia
+            "config": {
+                "key_node_count": N_KEY_NODES,
+                "cluster_count_requested": N_CLUSTERS,
+                "cluster_count_used": n_clusters,
             },
-            handle,
-        )
+        },
+    )
 
     colors = plt.cm.Set1(np.linspace(0, 1, n_clusters))
     fig, ax = plt.subplots(figsize=(12, 10))

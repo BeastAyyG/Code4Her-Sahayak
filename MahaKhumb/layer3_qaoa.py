@@ -8,7 +8,6 @@ import pickle
 import time
 from dataclasses import asdict, dataclass
 from itertools import islice
-from pathlib import Path
 
 import networkx as nx
 import numpy as np
@@ -57,6 +56,7 @@ from config import (
     ROUTE_OPTIONS_PER_GROUP,
 )
 from cross_zone_router import run_unified_routing, Cohort
+from artifact_utils import write_pickle_atomic
 
 GRAPH_INPUT = GRAPH_OUTPUT
 CLUSTER_INPUT = CLUSTER_OUTPUT
@@ -600,6 +600,8 @@ def run_qaoa(
         )
 
     qp = build_quadratic_program(problem)
+    print("TEST XYZ")
+    print(qp)
     best: TrialResult | None = None
 
     for trial_idx in range(QAOA_TRIALS):
@@ -837,8 +839,7 @@ def main() -> None:
         },
     }
 
-    with RESULT_OUTPUT.open("wb") as handle:
-        pickle.dump(payload, handle)
+    write_pickle_atomic(RESULT_OUTPUT, payload)
 
     print(f"Saved: {RESULT_OUTPUT}")
     print(f"Inter-cluster edges: {inter_result['edges']}")

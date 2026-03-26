@@ -1,4 +1,4 @@
-"""Lightweight offline smoke test for the MahaKhumb pipeline.
+"""Lightweight offline smoke test for the Continuum pipeline.
 
 This runs the core scripts in a temporary directory with synthetic data and
 smaller optimization limits so the project can be validated without internet.
@@ -39,16 +39,16 @@ def build_env() -> dict[str, str]:
     env = os.environ.copy()
     env.update(
         {
-            "MAHAKHUMB_FORCE_SYNTHETIC": "1",
-            "MAHAKHUMB_KEY_NODE_COUNT": "12",
-            "MAHAKHUMB_CLUSTER_COUNT": "3",
-            "MAHAKHUMB_MAX_QAOA_CLUSTERS": "2",
-            "MAHAKHUMB_MAX_CLUSTER_NODES": "3",
-            "MAHAKHUMB_QAOA_MAXITER": "15",
-            "MAHAKHUMB_QAOA_TRIALS": "2",
-            "MAHAKHUMB_STREAM_EVENT_COUNT": "4",
-            "MAHAKHUMB_STREAM_EVENT_INTERVAL_MS": "1",
-            "MAHAKHUMB_STGNN_EPOCHS": "8",
+            "CONTINUUM_FORCE_SYNTHETIC": "1",
+            "CONTINUUM_KEY_NODE_COUNT": "12",
+            "CONTINUUM_CLUSTER_COUNT": "3",
+            "CONTINUUM_MAX_QAOA_CLUSTERS": "2",
+            "CONTINUUM_MAX_CLUSTER_NODES": "3",
+            "CONTINUUM_QAOA_MAXITER": "15",
+            "CONTINUUM_QAOA_TRIALS": "2",
+            "CONTINUUM_STREAM_EVENT_COUNT": "4",
+            "CONTINUUM_STREAM_EVENT_INTERVAL_MS": "1",
+            "CONTINUUM_STGNN_EPOCHS": "8",
         }
     )
     return env
@@ -75,7 +75,7 @@ def run_step(step: str, cwd: Path, env: dict[str, str]) -> None:
 
 def main() -> None:
     env = build_env()
-    with tempfile.TemporaryDirectory(prefix="mahakhumb-smoke-") as tmp_dir:
+    with tempfile.TemporaryDirectory(prefix="continuum-smoke-") as tmp_dir:
         tmp_path = Path(tmp_dir)
         for step in STEPS:
             run_step(step, tmp_path, env)

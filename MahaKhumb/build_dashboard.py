@@ -1,4 +1,4 @@
-"""Build a standalone ICCC dashboard for the MahaKhumb demo."""
+"""Build a standalone ICCC dashboard for the Continuum demo."""
 
 from __future__ import annotations
 
@@ -6,10 +6,20 @@ import base64
 import json
 from pathlib import Path
 
-REPORT_PATH = Path("sprint_report.json")
-PREDICTIVE_PATH = Path("predictive_state.json")
-SIMULATION_PATH = Path("simulation_state.json")
-DASHBOARD_PATH = Path("demo_dashboard.html")
+from artifact_utils import read_json_file, write_text_atomic
+from config import (
+    CLUSTER_IMAGE_OUTPUT,
+    DASHBOARD_OUTPUT,
+    GRAPH_IMAGE_OUTPUT,
+    PREDICTIVE_STATE_OUTPUT,
+    REPORT_JSON_OUTPUT,
+    SIMULATION_STATE_OUTPUT,
+)
+
+REPORT_PATH = REPORT_JSON_OUTPUT
+PREDICTIVE_PATH = PREDICTIVE_STATE_OUTPUT
+SIMULATION_PATH = SIMULATION_STATE_OUTPUT
+DASHBOARD_PATH = DASHBOARD_OUTPUT
 
 
 def image_data_uri(path: Path) -> str:
@@ -20,9 +30,8 @@ def image_data_uri(path: Path) -> str:
 
 
 def _load_json(path: Path) -> dict[str, object]:
-    if not path.exists():
-        return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    payload = read_json_file(path, default={})
+    return payload if isinstance(payload, dict) else {}
 
 
 def severity_class(value: float) -> str:
@@ -164,8 +173,8 @@ def main() -> None:
     comparison_uri = image_data_uri(Path(report["artifacts"]["comparison_image"]))
     barchart_uri = image_data_uri(Path(report["artifacts"]["barchart_image"]))
     route_uri = image_data_uri(Path(report["artifacts"]["route_overlay_image"]))
-    layer1_uri = image_data_uri(Path("output_layer1_network.png"))
-    layer2_uri = image_data_uri(Path("output_layer2_clusters.png"))
+    layer1_uri = image_data_uri(GRAPH_IMAGE_OUTPUT)
+    layer2_uri = image_data_uri(CLUSTER_IMAGE_OUTPUT)
 
     zone_rows = "\n".join(
         f"""
@@ -200,7 +209,7 @@ def main() -> None:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MahaKhumb ICCC Dashboard</title>
+  <title>Continuum ICCC Dashboard</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23081118'/%3E%3Cpath d='M16 47V17h8l8.5 15.5L41 17h7v30h-7V29.8L33 44h-1.2L23 29.8V47z' fill='%23ff7a2f'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -544,7 +553,7 @@ def main() -> None:
   <div class="wrap">
     <section class="hero tune-reveal is-visible">
       <div class="tag">Integrated Command and Control Centre - Predictive + Quantum + Streaming</div>
-      <h1>MahaKhumb Flow Control Deck</h1>
+      <h1>Continuum Flow Control Deck</h1>
       <p>
         A StringTune-inspired command surface for surge detection, route re-optimization, and live stream playback.
         This view fuses the predictive spatiotemporal graph model, Kafka/Spark-style incident streaming,
@@ -767,7 +776,7 @@ def main() -> None:
 </html>
 """
 
-    DASHBOARD_PATH.write_text(html, encoding="utf-8")
+    write_text_atomic(DASHBOARD_PATH, html, encoding="utf-8")
     print(f"Saved: {DASHBOARD_PATH}")
 
 

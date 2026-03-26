@@ -1,0 +1,776 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]: Demo 3
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - heading "UP Crowd Control Command Console" [level=1] [ref=e8]
+          - paragraph [ref=e9]: "Submission view for a government-style operations room: left side shows decision metrics, right side shows the live operational visual that officers would use to monitor and redirect movement."
+        - generic [ref=e10]:
+          - generic [ref=e11]: Risk Zone 4
+          - generic [ref=e12]: medical lane priority
+          - generic [ref=e13]: ETA 4m
+          - generic [ref=e14]: Confidence medium
+        - generic [ref=e15]:
+          - generic [ref=e16]: Command Metrics
+          - generic [ref=e17]:
+            - generic [ref=e18]:
+              - generic [ref=e19]: Current State
+              - generic [ref=e20]:
+                - strong [ref=e21]: medical lane priority
+                - text: is driving zone
+                - strong [ref=e22]: "4"
+                - text: with overload ETA
+                - strong [ref=e23]: 4 minutes
+                - text: .
+            - generic [ref=e24]:
+              - generic [ref=e25]: Routing Decision
+              - generic [ref=e26]:
+                - text: Recommended solver is
+                - strong [ref=e27]: greedy
+                - text: ". Reason:"
+                - strong [ref=e28]: fallback due to missing local benchmark
+                - text: .
+            - generic [ref=e29]:
+              - generic [ref=e30]: Quantum Quality
+              - generic [ref=e31]:
+                - text: "QAOA feasible zones:"
+                - strong [ref=e32]: "4"
+                - text: ", match rate:"
+                - strong [ref=e33]: 100%
+                - text: ", avg runtime:"
+                - strong [ref=e34]: 0.42s
+                - text: .
+            - generic [ref=e35]:
+              - generic [ref=e36]: Field Scale
+              - generic [ref=e37]:
+                - text: Road graph covers
+                - strong [ref=e38]: "770"
+                - text: nodes and
+                - strong [ref=e39]: "1852"
+                - text: edges for crowd movement control.
+      - complementary [ref=e40]:
+        - generic [ref=e41]: Live Operational Visual
+        - 'figure "Operational visual: current crowd-routing evidence generated from the pipeline." [ref=e42]':
+          - img "Live control room visual" [ref=e43]
+          - generic [ref=e44]: "Operational visual: current crowd-routing evidence generated from the pipeline."
+    - generic [ref=e45]:
+      - generic [ref=e46]:
+        - strong [ref=e47]: "770"
+        - text: Road nodes
+      - generic [ref=e48]:
+        - strong [ref=e49]: "1852"
+        - text: Road edges
+      - generic [ref=e50]:
+        - strong [ref=e51]: pytorch-stgnn
+        - text: Predictive backend
+      - generic [ref=e52]:
+        - strong [ref=e53]: "4"
+        - text: QAOA feasible zones
+      - generic [ref=e54]:
+        - strong [ref=e55]: 0.42s
+        - text: Avg QAOA runtime
+      - generic [ref=e56]:
+        - strong [ref=e57]: 100%
+        - text: QAOA-optimal match
+  - generic [ref=e58]:
+    - article [ref=e59]:
+      - heading "Pipeline Stages (actual files)" [level=2] [ref=e60]
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - 'heading "Layer 1: Map + Predictive Weighting" [level=3] [ref=e63]'
+          - paragraph [ref=e64]: layer1_map.py + stgnn_predictor.py -> graph_data.pkl + predictive_state.json
+        - generic [ref=e65]:
+          - 'heading "Layer 2: Zone Decomposition" [level=3] [ref=e66]'
+          - paragraph [ref=e67]: layer2_clustering.py -> cluster_data.pkl (includes node_zone_map, zone_entry_pts, backbone_edges)
+        - generic [ref=e68]:
+          - 'heading "Layer 3: Exact vs Greedy vs QAOA + Cross-Zone" [level=3] [ref=e69]'
+          - paragraph [ref=e70]: layer3_qaoa.py + cross_zone_router.py -> qaoa_results.pkl
+        - generic [ref=e71]:
+          - heading "Streaming Simulation" [level=3] [ref=e72]
+          - paragraph [ref=e73]: stream_simulator.py -> simulation_state.json
+        - generic [ref=e74]:
+          - heading "Reporting + Dashboard" [level=3] [ref=e75]
+          - paragraph [ref=e76]: comparison.py + build_dashboard.py + build_dashboard_demo3.py
+    - article [ref=e77]:
+      - heading "Artifact Freshness" [level=2] [ref=e78]
+      - table [ref=e79]:
+        - rowgroup [ref=e80]:
+          - row "Artifact Last Modified / Size" [ref=e81]:
+            - columnheader "Artifact" [ref=e82]
+            - columnheader "Last Modified / Size" [ref=e83]
+        - rowgroup [ref=e84]:
+          - row "graph_data.pkl 2026-03-26 01:36:33 (909.0 KB)" [ref=e85]:
+            - cell "graph_data.pkl" [ref=e86]:
+              - code [ref=e87]: graph_data.pkl
+            - cell "2026-03-26 01:36:33 (909.0 KB)" [ref=e88]
+          - row "cluster_data.pkl 2026-03-26 01:36:39 (14.2 KB)" [ref=e89]:
+            - cell "cluster_data.pkl" [ref=e90]:
+              - code [ref=e91]: cluster_data.pkl
+            - cell "2026-03-26 01:36:39 (14.2 KB)" [ref=e92]
+          - row "qaoa_results.pkl 2026-03-26 01:36:47 (13.2 KB)" [ref=e93]:
+            - cell "qaoa_results.pkl" [ref=e94]:
+              - code [ref=e95]: qaoa_results.pkl
+            - cell "2026-03-26 01:36:47 (13.2 KB)" [ref=e96]
+          - row "sprint_report.json 2026-03-26 01:36:51 (32.2 KB)" [ref=e97]:
+            - cell "sprint_report.json" [ref=e98]:
+              - code [ref=e99]: sprint_report.json
+            - cell "2026-03-26 01:36:51 (32.2 KB)" [ref=e100]
+          - row "predictive_state.json 2026-03-26 01:36:33 (29.1 KB)" [ref=e101]:
+            - cell "predictive_state.json" [ref=e102]:
+              - code [ref=e103]: predictive_state.json
+            - cell "2026-03-26 01:36:33 (29.1 KB)" [ref=e104]
+          - row "simulation_state.json 2026-03-26 09:04:48 (8.4 KB)" [ref=e105]:
+            - cell "simulation_state.json" [ref=e106]:
+              - code [ref=e107]: simulation_state.json
+            - cell "2026-03-26 09:04:48 (8.4 KB)" [ref=e108]
+    - article [ref=e109]:
+      - heading "Predictive Layer" [level=2] [ref=e110]
+      - paragraph [ref=e111]:
+        - text: "Backend:"
+        - code [ref=e112]: pytorch-stgnn
+      - paragraph [ref=e113]:
+        - text: "History steps:"
+        - code [ref=e114]: "8"
+      - paragraph [ref=e115]:
+        - text: "Training loss:"
+        - code [ref=e116]: "1.656930"
+      - paragraph [ref=e117]:
+        - text: "Mean forecast density:"
+        - code [ref=e118]: "4.8261"
+      - paragraph [ref=e119]:
+        - text: "Peak forecast density:"
+        - code [ref=e120]: "4.8263"
+    - article [ref=e121]:
+      - heading "Zone / Backbone Layer" [level=2] [ref=e122]
+      - paragraph [ref=e123]:
+        - text: "Zones:"
+        - code [ref=e124]: "8"
+      - paragraph [ref=e125]:
+        - text: "Key nodes used for spectral clustering:"
+        - code [ref=e126]: "40"
+      - paragraph [ref=e127]:
+        - text: "Backbone edges found:"
+        - code [ref=e128]: "12"
+      - paragraph [ref=e129]:
+        - text: "node_zone_map size:"
+        - code [ref=e130]: "770"
+    - article [ref=e131]:
+      - heading "Streaming Layer" [level=2] [ref=e132]
+      - paragraph [ref=e133]:
+        - text: "Transport:"
+        - code [ref=e134]: kafka
+      - paragraph [ref=e135]:
+        - text: "Analytics backend:"
+        - code [ref=e136]: pyspark
+      - paragraph [ref=e137]:
+        - text: "Topics:"
+        - code [ref=e138]: continuum.crowd-surges, continuum.zone-state
+      - paragraph [ref=e139]:
+        - text: "Events published:"
+        - code [ref=e140]: "12"
+    - article [ref=e141]:
+      - generic [ref=e142]:
+        - heading "Live Risk Board" [level=2] [ref=e143]
+        - paragraph [ref=e144]: "This is the fastest read of the crowd state: top live zones, severity momentum, and event pressure."
+        - generic [ref=e145]:
+          - generic [ref=e146]:
+            - generic [ref=e147]:
+              - strong [ref=e148]: Zone 4
+              - generic [ref=e149]: "1.00"
+            - paragraph [ref=e150]: medical lane priority · 3 event(s)
+            - generic [ref=e151]:
+              - generic [ref=e153]: Now
+              - generic [ref=e157]: Avg
+              - generic [ref=e161]: Peak
+          - generic [ref=e164]:
+            - generic [ref=e165]:
+              - strong [ref=e166]: Zone 3
+              - generic [ref=e167]: "1.00"
+            - paragraph [ref=e168]: medical lane priority · 4 event(s)
+            - generic [ref=e169]:
+              - generic [ref=e171]: Now
+              - generic [ref=e175]: Avg
+              - generic [ref=e179]: Peak
+          - generic [ref=e182]:
+            - generic [ref=e183]:
+              - strong [ref=e184]: Zone 7
+              - generic [ref=e185]: "0.86"
+            - paragraph [ref=e186]: sudden surge · 1 event(s)
+            - generic [ref=e187]:
+              - generic [ref=e189]: Now
+              - generic [ref=e193]: Avg
+              - generic [ref=e197]: Peak
+          - generic [ref=e200]:
+            - generic [ref=e201]:
+              - strong [ref=e202]: Zone 5
+              - generic [ref=e203]: "0.81"
+            - paragraph [ref=e204]: vip corridor lock · 1 event(s)
+            - generic [ref=e205]:
+              - generic [ref=e207]: Now
+              - generic [ref=e211]: Avg
+              - generic [ref=e215]: Peak
+          - generic [ref=e218]:
+            - generic [ref=e219]:
+              - strong [ref=e220]: Zone 6
+              - generic [ref=e221]: "0.52"
+            - paragraph [ref=e222]: vip corridor lock · 3 event(s)
+            - generic [ref=e223]:
+              - generic [ref=e225]: Now
+              - generic [ref=e229]: Avg
+              - generic [ref=e233]: Peak
+          - generic [ref=e236]:
+            - generic [ref=e237]:
+              - strong [ref=e238]: Zone 1
+              - generic [ref=e239]: "0.43"
+            - paragraph [ref=e240]: procession surge · 1 event(s)
+            - generic [ref=e241]:
+              - generic [ref=e243]: Now
+              - generic [ref=e247]: Avg
+              - generic [ref=e251]: Peak
+      - complementary [ref=e254]:
+        - generic [ref=e255]:
+          - generic [ref=e256]: How To Read It
+          - heading "Left panel = live zone pressure" [level=3] [ref=e257]
+          - paragraph [ref=e258]:
+            - text: The colored bars rank zones by current severity. Red means urgent crowd pressure, amber means elevated, and green means manageable. Right now the hottest zones are
+            - code [ref=e259]: Zone 4 (1.00), Zone 3 (1.00), Zone 7 (0.86)
+            - text: .
+        - generic [ref=e260]:
+          - heading "What operators do with it" [level=3] [ref=e261]
+          - paragraph [ref=e262]: Use this panel first to decide which zone needs intervention, barricade changes, or rerouting. Event counts show whether a zone is suffering one isolated incident or repeated pressure.
+    - article [ref=e263]:
+      - heading "Field Visual Evidence" [level=2] [ref=e264]
+      - paragraph [ref=e265]: These generated visuals should appear near the top because control rooms need data plus visual proof before taking action on the ground.
+      - generic [ref=e266]:
+        - figure "Layer 1 network" [ref=e267]:
+          - img "Layer 1 network" [ref=e268]
+          - generic [ref=e269]: Layer 1 network
+        - figure "Layer 2 clusters" [ref=e270]:
+          - img "Layer 2 clusters" [ref=e271]
+          - generic [ref=e272]: Layer 2 clusters
+        - figure "Comparison view" [ref=e273]:
+          - img "Comparison view" [ref=e274]
+          - generic [ref=e275]: Comparison view
+        - figure "Benchmark bar chart" [ref=e276]:
+          - img "Benchmark bar chart" [ref=e277]
+          - generic [ref=e278]: Benchmark bar chart
+        - figure "Exact route overlay" [ref=e279]:
+          - img "Exact route overlay" [ref=e280]
+          - generic [ref=e281]: Exact route overlay
+    - article [ref=e282]:
+      - generic [ref=e283]:
+        - heading "Zone Severity Sweep" [level=2] [ref=e284]
+        - paragraph [ref=e285]: Severity by zone from the current simulation snapshot. Peaks show where routing pressure is already concentrated.
+        - img "Zone severity trend" [ref=e287]
+      - complementary [ref=e290]:
+        - generic [ref=e291]:
+          - generic [ref=e292]: Chart Meaning
+          - heading "Left chart = severity by zone" [level=3] [ref=e293]
+          - paragraph [ref=e294]:
+            - text: The line plot maps current simulated severity across zone ids. Taller peaks mean that local movement is becoming harder to control. The current forecasted risk zone is
+            - code [ref=e295]: Zone 4
+            - text: with ETA
+            - code [ref=e296]: 4 min
+            - text: .
+        - generic [ref=e297]:
+          - heading "Why it matters" [level=3] [ref=e298]
+          - paragraph [ref=e299]: This gives an at-a-glance map of where routing pressure is concentrated before the operator reads the detailed event table.
+    - article [ref=e300]:
+      - generic [ref=e301]:
+        - heading "Solver Cost Comparison" [level=2] [ref=e302]
+        - paragraph [ref=e303]: Lower is better. This makes the exact, greedy, and QAOA tradeoff readable without scanning the raw benchmark table.
+        - paragraph [ref=e305]: No local benchmark exists for the current hot zone, so solver cost bars are hidden.
+      - complementary [ref=e306]:
+        - generic [ref=e307]:
+          - generic [ref=e308]: Solver Meaning
+          - heading "Left bars = route quality" [level=3] [ref=e309]
+          - paragraph [ref=e310]: Lower cost is better because the objective combines travel burden and conflict penalties. When QAOA matches exact, the quantum-assisted method found the same best answer as the classical optimum.
+        - generic [ref=e311]:
+          - heading "Current reading" [level=3] [ref=e312]
+          - paragraph [ref=e313]:
+            - text: "Selected solver:"
+            - code [ref=e314]: greedy
+            - text: ". Exact gap:"
+            - code [ref=e315]: n/a
+            - text: . Suitability is
+            - code [ref=e316]: low
+            - text: for this local problem.
+    - article [ref=e317]:
+      - heading "Control Room Narrative" [level=2] [ref=e318]
+      - generic [ref=e319]:
+        - paragraph [ref=e320]:
+          - text: Highest live risk is currently
+          - code [ref=e321]: Zone 4
+          - text: with severity moving from
+          - code [ref=e322]: "0.88"
+          - text: to
+          - code [ref=e323]: "1.00"
+          - text: ". Overload outlook:"
+          - code [ref=e324]: 4 min
+          - text: ". Confidence:"
+          - code [ref=e325]: medium
+          - text: .
+        - paragraph [ref=e326]:
+          - text: "Solver story:"
+          - code [ref=e327]: greedy
+          - text: is the current local recommendation because
+          - code [ref=e328]: fallback due to missing local benchmark
+          - text: .
+    - article [ref=e329]:
+      - heading "Quantum-Assisted Local Solver View" [level=2] [ref=e330]
+      - generic [ref=e331]:
+        - generic [ref=e332]:
+          - strong [ref=e333]: Problem Size
+          - paragraph [ref=e334]:
+            - text: "Groups:"
+            - code [ref=e335]: "0"
+          - paragraph [ref=e336]:
+            - text: "Candidate routes:"
+            - code [ref=e337]: "0"
+          - paragraph [ref=e338]:
+            - text: "Conflict edges:"
+            - code [ref=e339]: "0"
+          - paragraph [ref=e340]:
+            - text: "Suitability:"
+            - code [ref=e341]: low
+        - generic [ref=e342]:
+          - strong [ref=e343]: Classical Baselines
+          - paragraph [ref=e344]:
+            - text: "Exact cost:"
+            - code [ref=e345]: n/a
+          - paragraph [ref=e346]:
+            - text: "Greedy cost:"
+            - code [ref=e347]: n/a
+          - paragraph [ref=e348]:
+            - text: "Statement:"
+            - code [ref=e349]: matched classical optimum for this local zone
+            - text: is used only when exact and selected route align.
+        - generic [ref=e350]:
+          - strong [ref=e351]: Quantum-Assisted Result
+          - paragraph [ref=e352]:
+            - text: "Solver label:"
+            - code [ref=e353]: greedy
+          - paragraph [ref=e354]:
+            - text: "QAOA cost:"
+            - code [ref=e355]: n/a
+          - paragraph [ref=e356]:
+            - text: "Runtime:"
+            - code [ref=e357]: n/a
+          - paragraph [ref=e358]:
+            - text: "Exact gap:"
+            - code [ref=e359]: n/a
+    - article [ref=e360]:
+      - heading "Intra-Zone Benchmark Table (from sprint_report.json)" [level=2] [ref=e361]
+      - table [ref=e362]:
+        - rowgroup [ref=e363]:
+          - row "Zone Groups Optimal Objective QAOA Objective Gap QAOA Overlap Penalty QAOA Route Preview" [ref=e364]:
+            - columnheader "Zone" [ref=e365]
+            - columnheader "Groups" [ref=e366]
+            - columnheader "Optimal Objective" [ref=e367]
+            - columnheader "QAOA Objective" [ref=e368]
+            - columnheader "Gap" [ref=e369]
+            - columnheader "QAOA Overlap Penalty" [ref=e370]
+            - columnheader "QAOA Route Preview" [ref=e371]
+        - rowgroup [ref=e372]:
+          - row "0 3 22.4300 22.4300 0.00% 0.0000 g0:4018270460->4223749036 (7n); g1:4018270497->4223749036 (4n); g2:4018270503->4223749036 (8n)" [ref=e373]:
+            - cell "0" [ref=e374]
+            - cell "3" [ref=e375]
+            - cell "22.4300" [ref=e376]
+            - cell "22.4300" [ref=e377]
+            - cell "0.00%" [ref=e378]
+            - cell "0.0000" [ref=e379]
+            - cell "g0:4018270460->4223749036 (7n); g1:4018270497->4223749036 (4n); g2:4018270503->4223749036 (8n)" [ref=e380]:
+              - code [ref=e381]: g0:4018270460->4223749036 (7n); g1:4018270497->4223749036 (4n); g2:4018270503->4223749036 (8n)
+          - row "1 3 163.3320 163.3320 0.00% 130.5406 g0:8767775780->4018270435 (11n); g1:8767775780->8767773463 (8n); g2:11262159058->4018270435 (6n)" [ref=e382]:
+            - cell "1" [ref=e383]
+            - cell "3" [ref=e384]
+            - cell "163.3320" [ref=e385]
+            - cell "163.3320" [ref=e386]
+            - cell "0.00%" [ref=e387]
+            - cell "130.5406" [ref=e388]
+            - cell "g0:8767775780->4018270435 (11n); g1:8767775780->8767773463 (8n); g2:11262159058->4018270435 (6n)" [ref=e389]:
+              - code [ref=e390]: g0:8767775780->4018270435 (11n); g1:8767775780->8767773463 (8n); g2:11262159058->4018270435 (6n)
+          - row "2 3 42.3343 42.3343 0.00% 12.0723 g0:8767760492->4223265912 (6n); g1:4223265974->4223265912 (9n); g2:4223265912->4223265963 (10n)" [ref=e391]:
+            - cell "2" [ref=e392]
+            - cell "3" [ref=e393]
+            - cell "42.3343" [ref=e394]
+            - cell "42.3343" [ref=e395]
+            - cell "0.00%" [ref=e396]
+            - cell "12.0723" [ref=e397]
+            - cell "g0:8767760492->4223265912 (6n); g1:4223265974->4223265912 (9n); g2:4223265912->4223265963 (10n)" [ref=e398]:
+              - code [ref=e399]: g0:8767760492->4223265912 (6n); g1:4223265974->4223265912 (9n); g2:4223265912->4223265963 (10n)
+          - row "3 3 106.2429 106.2429 0.00% 77.1204 g0:4223265472->8767760450 (9n); g1:4223265472->8767760452 (5n); g2:4223265472->12912074542 (9n)" [ref=e400]:
+            - cell "3" [ref=e401]
+            - cell "3" [ref=e402]
+            - cell "106.2429" [ref=e403]
+            - cell "106.2429" [ref=e404]
+            - cell "0.00%" [ref=e405]
+            - cell "77.1204" [ref=e406]
+            - cell "g0:4223265472->8767760450 (9n); g1:4223265472->8767760452 (5n); g2:4223265472->12912074542 (9n)" [ref=e407]:
+              - code [ref=e408]: g0:4223265472->8767760450 (9n); g1:4223265472->8767760452 (5n); g2:4223265472->12912074542 (9n)
+    - article [ref=e409]:
+      - heading "QAOA Internal Run Table (from qaoa_results.pkl)" [level=2] [ref=e410]
+      - table [ref=e411]:
+        - rowgroup [ref=e412]:
+          - row "Cluster Groups Options/Group Candidates Exact Obj Greedy Obj QAOA Obj Feasible Status Runtime" [ref=e413]:
+            - columnheader "Cluster" [ref=e414]
+            - columnheader "Groups" [ref=e415]
+            - columnheader "Options/Group" [ref=e416]
+            - columnheader "Candidates" [ref=e417]
+            - columnheader "Exact Obj" [ref=e418]
+            - columnheader "Greedy Obj" [ref=e419]
+            - columnheader "QAOA Obj" [ref=e420]
+            - columnheader "Feasible" [ref=e421]
+            - columnheader "Status" [ref=e422]
+            - columnheader "Runtime" [ref=e423]
+        - rowgroup [ref=e424]:
+          - row "0 3 3 9 22.4300 37.5283 22.4300 YES SUCCESS 0.43s" [ref=e425]:
+            - cell "0" [ref=e426]
+            - cell "3" [ref=e427]
+            - cell "3" [ref=e428]
+            - cell "9" [ref=e429]
+            - cell "22.4300" [ref=e430]
+            - cell "37.5283" [ref=e431]
+            - cell "22.4300" [ref=e432]
+            - cell "YES" [ref=e433]
+            - cell "SUCCESS" [ref=e434]
+            - cell "0.43s" [ref=e435]
+          - row "1 3 3 9 163.3320 163.3321 163.3320 YES SUCCESS 0.42s" [ref=e436]:
+            - cell "1" [ref=e437]
+            - cell "3" [ref=e438]
+            - cell "3" [ref=e439]
+            - cell "9" [ref=e440]
+            - cell "163.3320" [ref=e441]
+            - cell "163.3321" [ref=e442]
+            - cell "163.3320" [ref=e443]
+            - cell "YES" [ref=e444]
+            - cell "SUCCESS" [ref=e445]
+            - cell "0.42s" [ref=e446]
+          - row "2 3 3 9 42.3343 42.3343 42.3343 YES SUCCESS 0.38s" [ref=e447]:
+            - cell "2" [ref=e448]
+            - cell "3" [ref=e449]
+            - cell "3" [ref=e450]
+            - cell "9" [ref=e451]
+            - cell "42.3343" [ref=e452]
+            - cell "42.3343" [ref=e453]
+            - cell "42.3343" [ref=e454]
+            - cell "YES" [ref=e455]
+            - cell "SUCCESS" [ref=e456]
+            - cell "0.38s" [ref=e457]
+          - row "3 3 3 9 106.2429 106.2430 106.2429 YES SUCCESS 0.45s" [ref=e458]:
+            - cell "3" [ref=e459]
+            - cell "3" [ref=e460]
+            - cell "3" [ref=e461]
+            - cell "9" [ref=e462]
+            - cell "106.2429" [ref=e463]
+            - cell "106.2430" [ref=e464]
+            - cell "106.2429" [ref=e465]
+            - cell "YES" [ref=e466]
+            - cell "SUCCESS" [ref=e467]
+            - cell "0.45s" [ref=e468]
+    - article [ref=e469]:
+      - heading "Zone Entry Points" [level=2] [ref=e470]
+      - table [ref=e471]:
+        - rowgroup [ref=e472]:
+          - row "Zone Gateway Count Sample Node IDs" [ref=e473]:
+            - columnheader "Zone" [ref=e474]
+            - columnheader "Gateway Count" [ref=e475]
+            - columnheader "Sample Node IDs" [ref=e476]
+        - rowgroup [ref=e477]:
+          - row "0 22 13461794179, 4223758219, 4018270604, 8767969047, 8778053789, ..." [ref=e478]:
+            - cell "0" [ref=e479]
+            - cell "22" [ref=e480]
+            - cell "13461794179, 4223758219, 4018270604, 8767969047, 8778053789, ..." [ref=e481]:
+              - code [ref=e482]: 13461794179, 4223758219, 4018270604, 8767969047, 8778053789, ...
+          - row "1 17 4018270435, 8767775780, 8767775814, 8767773418, 8767773463, ..." [ref=e483]:
+            - cell "1" [ref=e484]
+            - cell "17" [ref=e485]
+            - cell "4018270435, 8767775780, 8767775814, 8767773418, 8767773463, ..." [ref=e486]:
+              - code [ref=e487]: 4018270435, 8767775780, 8767775814, 8767773418, 8767773463, ...
+          - row "2 16 4223265920, 10653961409, 4223265890, 4223265895, 8767773417, ..." [ref=e488]:
+            - cell "2" [ref=e489]
+            - cell "16" [ref=e490]
+            - cell "4223265920, 10653961409, 4223265890, 4223265895, 8767773417, ..." [ref=e491]:
+              - code [ref=e492]: 4223265920, 10653961409, 4223265890, 4223265895, 8767773417, ...
+          - row "3 16 4223265472, 9731850756, 9731850821, 4223696166, 9731850759, ..." [ref=e493]:
+            - cell "3" [ref=e494]
+            - cell "16" [ref=e495]
+            - cell "4223265472, 9731850756, 9731850821, 4223696166, 9731850759, ..." [ref=e496]:
+              - code [ref=e497]: 4223265472, 9731850756, 9731850821, 4223696166, 9731850759, ...
+          - row "4 16 8766620897, 4223696162, 4018270274, 8766636901, 8766624777, ..." [ref=e498]:
+            - cell "4" [ref=e499]
+            - cell "16" [ref=e500]
+            - cell "8766620897, 4223696162, 4018270274, 8766636901, 8766624777, ..." [ref=e501]:
+              - code [ref=e502]: 8766620897, 4223696162, 4018270274, 8766636901, 8766624777, ...
+          - row "5 13 12912062496, 12912062498, 12909261827, 4223273796, 10653935302, ..." [ref=e503]:
+            - cell "5" [ref=e504]
+            - cell "13" [ref=e505]
+            - cell "12912062496, 12912062498, 12909261827, 4223273796, 10653935302, ..." [ref=e506]:
+              - code [ref=e507]: 12912062496, 12912062498, 12909261827, 4223273796, 10653935302, ...
+          - row "6 22 9637413642, 12920796177, 12908690321, 4223287834, 8767760538, ..." [ref=e508]:
+            - cell "6" [ref=e509]
+            - cell "22" [ref=e510]
+            - cell "9637413642, 12920796177, 12908690321, 4223287834, 8767760538, ..." [ref=e511]:
+              - code [ref=e512]: 9637413642, 12920796177, 12908690321, 4223287834, 8767760538, ...
+          - row "7 18 4233093891, 4223758213, 8766624776, 12670579049, 8766624778, ..." [ref=e513]:
+            - cell "7" [ref=e514]
+            - cell "18" [ref=e515]
+            - cell "4233093891, 4223758213, 8766624776, 12670579049, 8766624778, ..." [ref=e516]:
+              - code [ref=e517]: 4233093891, 4223758213, 8766624776, 12670579049, 8766624778, ...
+    - article [ref=e518]:
+      - heading "Backbone Edges" [level=2] [ref=e519]
+      - paragraph [ref=e520]: These are inter-zone links detected in Layer 2 and used to build the cross-zone backbone graph in Layer 3.
+      - paragraph [ref=e521]:
+        - code [ref=e522]: "[(0, 1), (0, 7), (1, 2), (0, 4), (3, 4), (3, 7), (2, 6), (5, 6), (3, 6), (1, 6), (4, 7), (3, 5)]"
+    - article [ref=e523]:
+      - generic [ref=e524]:
+        - heading "Cross-Zone Routing Internals (Demo 3)" [level=2] [ref=e525]
+        - paragraph [ref=e526]:
+          - text: "Cohorts:"
+          - code [ref=e527]: "10"
+          - text: "| Cross-zone:"
+          - code [ref=e528]: "9"
+          - text: "| Intra-zone:"
+          - code [ref=e529]: "1"
+          - text: "| Greedy cost:"
+          - code [ref=e530]: "1712.0000"
+          - text: "| Exact cost:"
+          - code [ref=e531]: "1712.0000"
+          - text: "| Gap:"
+          - code [ref=e532]: 0.00%
+          - text: "| QUBO shape:"
+          - code [ref=e533]: "[30, 30]"
+        - table [ref=e534]:
+          - rowgroup [ref=e535]:
+            - row "Cohort Zone Path Segments Total Cost" [ref=e536]:
+              - columnheader "Cohort" [ref=e537]
+              - columnheader "Zone Path" [ref=e538]
+              - columnheader "Segments" [ref=e539]
+              - columnheader "Total Cost" [ref=e540]
+          - rowgroup [ref=e541]:
+            - row "C0 5 -> 3 -> 7 -> 0 5 38.0000" [ref=e542]:
+              - cell "C0" [ref=e543]
+              - cell "5 -> 3 -> 7 -> 0" [ref=e544]:
+                - code [ref=e545]: 5 -> 3 -> 7 -> 0
+              - cell "5" [ref=e546]
+              - cell "38.0000" [ref=e547]
+            - row "C1 6 -> 2 3 25.0000" [ref=e548]:
+              - cell "C1" [ref=e549]
+              - cell "6 -> 2" [ref=e550]:
+                - code [ref=e551]: 6 -> 2
+              - cell "3" [ref=e552]
+              - cell "25.0000" [ref=e553]
+            - row "C2 4 -> 3 -> 6 3 29.0000" [ref=e554]:
+              - cell "C2" [ref=e555]
+              - cell "4 -> 3 -> 6" [ref=e556]:
+                - code [ref=e557]: 4 -> 3 -> 6
+              - cell "3" [ref=e558]
+              - cell "29.0000" [ref=e559]
+            - row "C3 0 -> 1 -> 2 4 34.0000" [ref=e560]:
+              - cell "C3" [ref=e561]
+              - cell "0 -> 1 -> 2" [ref=e562]:
+                - code [ref=e563]: 0 -> 1 -> 2
+              - cell "4" [ref=e564]
+              - cell "34.0000" [ref=e565]
+            - row "C4 4 -> 3 -> 6 4 24.0000" [ref=e566]:
+              - cell "C4" [ref=e567]
+              - cell "4 -> 3 -> 6" [ref=e568]:
+                - code [ref=e569]: 4 -> 3 -> 6
+              - cell "4" [ref=e570]
+              - cell "24.0000" [ref=e571]
+            - row "C5 0 -> 1 3 19.0000" [ref=e572]:
+              - cell "C5" [ref=e573]
+              - cell "0 -> 1" [ref=e574]:
+                - code [ref=e575]: 0 -> 1
+              - cell "3" [ref=e576]
+              - cell "19.0000" [ref=e577]
+            - row "C6 7 -> 4 3 24.0000" [ref=e578]:
+              - cell "C6" [ref=e579]
+              - cell "7 -> 4" [ref=e580]:
+                - code [ref=e581]: 7 -> 4
+              - cell "3" [ref=e582]
+              - cell "24.0000" [ref=e583]
+            - row "C7 2 -> 1 -> 0 4 26.0000" [ref=e584]:
+              - cell "C7" [ref=e585]
+              - cell "2 -> 1 -> 0" [ref=e586]:
+                - code [ref=e587]: 2 -> 1 -> 0
+              - cell "4" [ref=e588]
+              - cell "26.0000" [ref=e589]
+            - row "C9 5 -> 6 -> 2 4 18.0000" [ref=e590]:
+              - cell "C9" [ref=e591]
+              - cell "5 -> 6 -> 2" [ref=e592]:
+                - code [ref=e593]: 5 -> 6 -> 2
+              - cell "4" [ref=e594]
+              - cell "18.0000" [ref=e595]
+      - complementary [ref=e596]:
+        - generic [ref=e597]:
+          - generic [ref=e598]: Network Meaning
+          - heading "Left table = inter-zone movement" [level=3] [ref=e599]
+          - paragraph [ref=e600]: Each cohort row shows how a moving crowd group traverses the backbone graph from one zone to another. This is the system-level routing layer above the local QAOA zone solver.
+        - generic [ref=e601]:
+          - heading "Current reading" [level=3] [ref=e602]
+          - paragraph [ref=e603]:
+            - text: "Total cohorts:"
+            - code [ref=e604]: "10"
+            - text: ". Cross-zone journeys:"
+            - code [ref=e605]: "9"
+            - text: . Greedy and exact costs are
+            - code [ref=e606]: 0.00%
+            - text: apart, which means the backbone plan is currently stable.
+    - article [ref=e607]:
+      - heading "Live Incident Events (from simulation_state.json)" [level=2] [ref=e608]
+      - table [ref=e609]:
+        - rowgroup [ref=e610]:
+          - row "Event Zone Type Severity Impacted Edges Triggered At" [ref=e611]:
+            - columnheader "Event" [ref=e612]
+            - columnheader "Zone" [ref=e613]
+            - columnheader "Type" [ref=e614]
+            - columnheader "Severity" [ref=e615]
+            - columnheader "Impacted Edges" [ref=e616]
+            - columnheader "Triggered At" [ref=e617]
+        - rowgroup [ref=e618]:
+          - row "evt-000 0 vip_corridor_lock 0.501 7 2026-03-25T21:31:00.501604+00:00" [ref=e619]:
+            - cell "evt-000" [ref=e620]:
+              - code [ref=e621]: evt-000
+            - cell "0" [ref=e622]
+            - cell "vip_corridor_lock" [ref=e623]
+            - cell "0.501" [ref=e624]
+            - cell "7" [ref=e625]
+            - cell "2026-03-25T21:31:00.501604+00:00" [ref=e626]:
+              - code [ref=e627]: 2026-03-25T21:31:00.501604+00:00
+          - row "evt-001 6 procession_surge 0.708 3 2026-03-25T21:31:00.651604+00:00" [ref=e628]:
+            - cell "evt-001" [ref=e629]:
+              - code [ref=e630]: evt-001
+            - cell "6" [ref=e631]
+            - cell "procession_surge" [ref=e632]
+            - cell "0.708" [ref=e633]
+            - cell "3" [ref=e634]
+            - cell "2026-03-25T21:31:00.651604+00:00" [ref=e635]:
+              - code [ref=e636]: 2026-03-25T21:31:00.651604+00:00
+          - row "evt-002 4 sudden_surge 0.759 8 2026-03-25T21:31:00.801604+00:00" [ref=e637]:
+            - cell "evt-002" [ref=e638]:
+              - code [ref=e639]: evt-002
+            - cell "4" [ref=e640]
+            - cell "sudden_surge" [ref=e641]
+            - cell "0.759" [ref=e642]
+            - cell "8" [ref=e643]
+            - cell "2026-03-25T21:31:00.801604+00:00" [ref=e644]:
+              - code [ref=e645]: 2026-03-25T21:31:00.801604+00:00
+          - row "evt-003 6 vip_corridor_lock 0.252 7 2026-03-25T21:31:00.951604+00:00" [ref=e646]:
+            - cell "evt-003" [ref=e647]:
+              - code [ref=e648]: evt-003
+            - cell "6" [ref=e649]
+            - cell "vip_corridor_lock" [ref=e650]
+            - cell "0.252" [ref=e651]
+            - cell "7" [ref=e652]
+            - cell "2026-03-25T21:31:00.951604+00:00" [ref=e653]:
+              - code [ref=e654]: 2026-03-25T21:31:00.951604+00:00
+          - row "evt-004 4 sudden_surge 0.891 4 2026-03-25T21:31:01.101604+00:00" [ref=e655]:
+            - cell "evt-004" [ref=e656]:
+              - code [ref=e657]: evt-004
+            - cell "4" [ref=e658]
+            - cell "sudden_surge" [ref=e659]
+            - cell "0.891" [ref=e660]
+            - cell "4" [ref=e661]
+            - cell "2026-03-25T21:31:01.101604+00:00" [ref=e662]:
+              - code [ref=e663]: 2026-03-25T21:31:01.101604+00:00
+          - row "evt-005 5 vip_corridor_lock 0.808 5 2026-03-25T21:31:01.251604+00:00" [ref=e664]:
+            - cell "evt-005" [ref=e665]:
+              - code [ref=e666]: evt-005
+            - cell "5" [ref=e667]
+            - cell "vip_corridor_lock" [ref=e668]
+            - cell "0.808" [ref=e669]
+            - cell "5" [ref=e670]
+            - cell "2026-03-25T21:31:01.251604+00:00" [ref=e671]:
+              - code [ref=e672]: 2026-03-25T21:31:01.251604+00:00
+          - row "evt-006 3 medical_lane_priority 0.594 3 2026-03-25T21:31:01.401604+00:00" [ref=e673]:
+            - cell "evt-006" [ref=e674]:
+              - code [ref=e675]: evt-006
+            - cell "3" [ref=e676]
+            - cell "medical_lane_priority" [ref=e677]
+            - cell "0.594" [ref=e678]
+            - cell "3" [ref=e679]
+            - cell "2026-03-25T21:31:01.401604+00:00" [ref=e680]:
+              - code [ref=e681]: 2026-03-25T21:31:01.401604+00:00
+          - row "evt-007 0 bridge_bottleneck 0.812 3 2026-03-25T21:31:01.551604+00:00" [ref=e682]:
+            - cell "evt-007" [ref=e683]:
+              - code [ref=e684]: evt-007
+            - cell "0" [ref=e685]
+            - cell "bridge_bottleneck" [ref=e686]
+            - cell "0.812" [ref=e687]
+            - cell "3" [ref=e688]
+            - cell "2026-03-25T21:31:01.551604+00:00" [ref=e689]:
+              - code [ref=e690]: 2026-03-25T21:31:01.551604+00:00
+          - row "evt-008 1 procession_surge 0.434 7 2026-03-25T21:31:01.701604+00:00" [ref=e691]:
+            - cell "evt-008" [ref=e692]:
+              - code [ref=e693]: evt-008
+            - cell "1" [ref=e694]
+            - cell "procession_surge" [ref=e695]
+            - cell "0.434" [ref=e696]
+            - cell "7" [ref=e697]
+            - cell "2026-03-25T21:31:01.701604+00:00" [ref=e698]:
+              - code [ref=e699]: 2026-03-25T21:31:01.701604+00:00
+          - row "evt-009 7 sudden_surge 0.864 6 2026-03-25T21:31:01.851604+00:00" [ref=e700]:
+            - cell "evt-009" [ref=e701]:
+              - code [ref=e702]: evt-009
+            - cell "7" [ref=e703]
+            - cell "sudden_surge" [ref=e704]
+            - cell "0.864" [ref=e705]
+            - cell "6" [ref=e706]
+            - cell "2026-03-25T21:31:01.851604+00:00" [ref=e707]:
+              - code [ref=e708]: 2026-03-25T21:31:01.851604+00:00
+          - row "evt-010 6 vip_corridor_lock 0.523 3 2026-03-25T21:31:02.001604+00:00" [ref=e709]:
+            - cell "evt-010" [ref=e710]:
+              - code [ref=e711]: evt-010
+            - cell "6" [ref=e712]
+            - cell "vip_corridor_lock" [ref=e713]
+            - cell "0.523" [ref=e714]
+            - cell "3" [ref=e715]
+            - cell "2026-03-25T21:31:02.001604+00:00" [ref=e716]:
+              - code [ref=e717]: 2026-03-25T21:31:02.001604+00:00
+          - row "evt-011 0 bridge_bottleneck 0.273 7 2026-03-25T21:31:02.151604+00:00" [ref=e718]:
+            - cell "evt-011" [ref=e719]:
+              - code [ref=e720]: evt-011
+            - cell "0" [ref=e721]
+            - cell "bridge_bottleneck" [ref=e722]
+            - cell "0.273" [ref=e723]
+            - cell "7" [ref=e724]
+            - cell "2026-03-25T21:31:02.151604+00:00" [ref=e725]:
+              - code [ref=e726]: 2026-03-25T21:31:02.151604+00:00
+          - row "manual-vip_corridor_lock-3 3 vip_corridor_lock 0.934 0 2026-03-25T22:34:51.954746+00:00" [ref=e727]:
+            - cell "manual-vip_corridor_lock-3" [ref=e728]:
+              - code [ref=e729]: manual-vip_corridor_lock-3
+            - cell "3" [ref=e730]
+            - cell "vip_corridor_lock" [ref=e731]
+            - cell "0.934" [ref=e732]
+            - cell "0" [ref=e733]
+            - cell "2026-03-25T22:34:51.954746+00:00" [ref=e734]:
+              - code [ref=e735]: 2026-03-25T22:34:51.954746+00:00
+          - row "manual-medical_lane_priority-4 4 medical_lane_priority 1.000 0 2026-03-26T03:28:07.286526+00:00" [ref=e736]:
+            - cell "manual-medical_lane_priority-4" [ref=e737]:
+              - code [ref=e738]: manual-medical_lane_priority-4
+            - cell "4" [ref=e739]
+            - cell "medical_lane_priority" [ref=e740]
+            - cell "1.000" [ref=e741]
+            - cell "0" [ref=e742]
+            - cell "2026-03-26T03:28:07.286526+00:00" [ref=e743]:
+              - code [ref=e744]: 2026-03-26T03:28:07.286526+00:00
+          - row "manual-medical_lane_priority-3 3 medical_lane_priority 1.000 0 2026-03-26T03:34:46.969301+00:00" [ref=e745]:
+            - cell "manual-medical_lane_priority-3" [ref=e746]:
+              - code [ref=e747]: manual-medical_lane_priority-3
+            - cell "3" [ref=e748]
+            - cell "medical_lane_priority" [ref=e749]
+            - cell "1.000" [ref=e750]
+            - cell "0" [ref=e751]
+            - cell "2026-03-26T03:34:46.969301+00:00" [ref=e752]:
+              - code [ref=e753]: 2026-03-26T03:34:46.969301+00:00
+          - row "manual-medical_lane_priority-3 3 medical_lane_priority 1.000 0 2026-03-26T03:34:48.650435+00:00" [ref=e754]:
+            - cell "manual-medical_lane_priority-3" [ref=e755]:
+              - code [ref=e756]: manual-medical_lane_priority-3
+            - cell "3" [ref=e757]
+            - cell "medical_lane_priority" [ref=e758]
+            - cell "1.000" [ref=e759]
+            - cell "0" [ref=e760]
+            - cell "2026-03-26T03:34:48.650435+00:00" [ref=e761]:
+              - code [ref=e762]: 2026-03-26T03:34:48.650435+00:00

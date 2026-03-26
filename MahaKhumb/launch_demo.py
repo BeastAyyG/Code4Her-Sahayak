@@ -1,4 +1,4 @@
-"""Simple Python launcher for MahaKhumb demos.
+"""Simple Python launcher for Continuum demos.
 
 Avoids PowerShell execution-policy issues by running everything through Python.
 """
@@ -11,6 +11,13 @@ import sys
 import webbrowser
 from pathlib import Path
 
+from config import (
+    CLUSTER_OUTPUT,
+    DASHBOARD_OUTPUT,
+    GRAPH_OUTPUT,
+    INTERNAL_DASHBOARD_OUTPUT,
+    SIMULATION_STATE_OUTPUT,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 PIPELINE_STEPS = [
@@ -23,11 +30,7 @@ PIPELINE_STEPS = [
     "build_dashboard.py",
     "build_dashboard_demo3.py",
 ]
-MOBILE_ARTIFACTS = [
-    "graph_data.pkl",
-    "cluster_data.pkl",
-    "simulation_state.json",
-]
+MOBILE_ARTIFACTS = [GRAPH_OUTPUT, CLUSTER_OUTPUT, SIMULATION_STATE_OUTPUT]
 
 
 def run_script(script_name: str) -> None:
@@ -43,18 +46,18 @@ def run_script(script_name: str) -> None:
 def run_pipeline() -> None:
     for step in PIPELINE_STEPS:
         run_script(step)
-    print(f"[launcher] dashboard ready: {PROJECT_ROOT / 'demo_dashboard.html'}")
-    print(f"[launcher] demo3 ready: {PROJECT_ROOT / 'demo_dashboard_3.html'}")
+    print(f"[launcher] dashboard ready: {DASHBOARD_OUTPUT}")
+    print(f"[launcher] demo3 ready: {INTERNAL_DASHBOARD_OUTPUT}")
 
 
 def ensure_mobile_artifacts(build_missing: bool) -> None:
-    missing = [name for name in MOBILE_ARTIFACTS if not (PROJECT_ROOT / name).exists()]
+    missing = [path for path in MOBILE_ARTIFACTS if not path.exists()]
     if not missing:
         return
     if not build_missing:
         raise SystemExit(
             "Missing required artifacts: "
-            + ", ".join(missing)
+            + ", ".join(str(path) for path in missing)
             + ". Run `python launch_demo.py pipeline` first or pass --build-missing."
         )
     print("[launcher] missing mobile artifacts; running pipeline first")
@@ -82,7 +85,7 @@ def run_mobile(port: int, build_missing: bool, open_browser: bool) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="MahaKhumb demo launcher")
+    parser = argparse.ArgumentParser(description="Continuum demo launcher")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("pipeline", help="Run the full pipeline and build dashboards")

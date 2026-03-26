@@ -14,7 +14,9 @@ from typing import Any
 
 import numpy as np
 
+from artifact_utils import write_json_atomic
 from config import (
+    CACHE_ROOT,
     CLUSTER_OUTPUT,
     RANDOM_SEED,
     SIMULATION_STATE_OUTPUT,
@@ -47,9 +49,9 @@ except ImportError:  # pragma: no cover
 
 
 KAFKA_BOOTSTRAP = "localhost:9092"
-SURGE_TOPIC = "mahakhumb.crowd-surges"
-STATE_TOPIC = "mahakhumb.zone-state"
-FALLBACK_DIR = Path("cache") / "kafka_fallback"
+SURGE_TOPIC = "continuum.crowd-surges"
+STATE_TOPIC = "continuum.zone-state"
+FALLBACK_DIR = CACHE_ROOT / "kafka_fallback"
 
 SCENARIO_REGISTRY: dict[str, dict[str, Any]] = {
     "vip_corridor_lock": {
@@ -320,7 +322,7 @@ def _aggregate_with_spark(events: list[StreamEvent]) -> tuple[dict[int, dict[str
         os.environ.setdefault("PYSPARK_DRIVER_PYTHON", spark_python)
         spark = (
             SparkSession.builder.master("local[1]")
-            .appName("MahaKhumbStreamAggregation")
+            .appName("ContinuumStreamAggregation")
             .config("spark.ui.enabled", "false")
             .config("spark.driver.host", "127.0.0.1")
             .config("spark.driver.bindAddress", "127.0.0.1")
@@ -438,7 +440,7 @@ def main() -> None:
         "events": published_events,
         "zones": {str(zone_id): state for zone_id, state in zone_states.items()},
     }
-    SIMULATION_STATE_OUTPUT.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    write_json_atomic(SIMULATION_STATE_OUTPUT, payload)
     print(f"Published {len(events)} stream events via {transport}")
     print(f"Analytics backend: {analytics_backend}")
     print(f"Saved: {SIMULATION_STATE_OUTPUT}")

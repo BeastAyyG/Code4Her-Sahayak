@@ -1,13 +1,14 @@
-"""Consistency checks for the saved MahaKhumb experiment outputs."""
+"""Consistency checks for the saved Continuum experiment outputs."""
 
 from __future__ import annotations
 
 import json
 import pickle
-from pathlib import Path
 
-RESULT_PKL = Path("qaoa_results.pkl")
-REPORT_JSON = Path("sprint_report.json")
+from config import QAOA_OUTPUT, REPORT_JSON_OUTPUT
+
+RESULT_PKL = QAOA_OUTPUT
+REPORT_JSON = REPORT_JSON_OUTPUT
 
 
 def main() -> None:

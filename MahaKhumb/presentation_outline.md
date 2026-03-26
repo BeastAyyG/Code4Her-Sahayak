@@ -2,7 +2,7 @@
 
 ## Slide 1: Title
 - Quantum-Enhanced Crowd Optimization for Mega Events
-- MahaKhumb sprint demo
+- Continuum sprint demo
 
 ## Slide 2: Problem
 - Kumbh Mela creates extreme crowd-density and routing pressure.

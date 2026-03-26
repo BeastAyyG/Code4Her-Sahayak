@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -10,6 +9,7 @@ from pathlib import Path
 import networkx as nx
 import numpy as np
 
+from artifact_utils import write_json_atomic
 from config import (
     PREDICTIVE_STATE_OUTPUT,
     RANDOM_SEED,
@@ -203,4 +203,4 @@ def persist_predictive_state(
         "summary": asdict(summary),
         "forecast_by_node": {str(node_id): density for node_id, density in forecast.items()},
     }
-    output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    write_json_atomic(output_path, payload)

@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Continuum · Quantum-Assisted Crowd Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,700&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05090f;--bg2:#0c1420;--ink:#e8f4f1;--muted:#7a9e9b;
+  --q:#00e5c0;--g:#ff6b35;--c:#a78bfa;--y:#ffd166;
+  --crit:#ff4757;--elev:#ffa502;--safe:#2ed573;
+  --glass:rgba(14,28,44,0.72);--line:rgba(255,255,255,0.08);
+  --shadow:0 32px 80px rgba(0,0,0,0.5);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:'Space Grotesk','Segoe UI',sans-serif;
+  overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 60% at 15% 10%,rgba(0,229,192,0.07),transparent),
+    radial-gradient(ellipse 50% 50% at 85% 90%,rgba(167,139,250,0.06),transparent),
+    radial-gradient(ellipse 40% 40% at 50% 50%,rgba(255,107,53,0.04),transparent);
+}
+
+/* ── Layout ── */
+.wrap{max-width:1380px;margin:0 auto;padding:28px 20px 80px}
+.section{margin-bottom:28px}
+
+/* ── Hero ── */
+.hero{
+  position:relative;overflow:hidden;
+  background:linear-gradient(135deg,rgba(0,229,192,0.06) 0%,rgba(167,139,250,0.05) 100%),var(--glass);
+  border:1px solid rgba(0,229,192,0.15);border-radius:32px;
+  padding:48px 52px;backdrop-filter:blur(28px);
+  box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid rgba(0,229,192,0.3);border-radius:999px;
+  padding:6px 14px;font-size:.75rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--q);
+  background:rgba(0,229,192,0.06);margin-bottom:20px;
+}
+.hero-tag::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--q);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.5)}}
+.hero h1{
+  font-family:'Fraunces',Georgia,serif;
+  font-size:clamp(2.8rem,5vw,5rem);line-height:.95;letter-spacing:-.03em;
+  background:linear-gradient(135deg,#fff 30%,var(--q));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:16px;
+}
+.hero p{color:var(--muted);max-width:640px;line-height:1.7;font-size:1.05rem}
+.hero-metrics{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:36px;
+}
+.hero-metric{
+  background:rgba(255,255,255,0.03);border:1px solid var(--line);
+  border-radius:18px;padding:18px;position:relative;overflow:hidden;
+}
+.hero-metric::before{
+  content:'';position:absolute;left:0;top:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--q),transparent);
+}
+.hero-metric strong{display:block;font-size:1.7rem;color:var(--q);margin-bottom:4px;font-family:'Space Grotesk',sans-serif}
+.hero-metric span{font-size:.8rem;color:var(--muted);letter-spacing:.04em}
+
+/* ── Cards ── */
+.card{
+  background:var(--glass);border:1px solid var(--line);
+  border-radius:24px;padding:28px;backdrop-filter:blur(20px);
+  box-shadow:0 20px 60px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.card-title{
+  font-family:'Fraunces',Georgia,serif;font-size:1.35rem;
+  color:var(--ink);margin-bottom:6px;display:flex;align-items:center;gap:10px;
+}
+.card-title .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.card-sub{color:var(--muted);font-size:.88rem;margin-bottom:20px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+
+/* ── Section header ── */
+.sec-label{
+  font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--q);margin-bottom:12px;display:flex;align-items:center;gap:8px;
+}
+.sec-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(0,229,192,0.3),transparent)}
+
+/* ── Greedy vs QAOA Canvas ── */
+#comparison-canvas{width:100%;height:360px;display:block;border-radius:16px;cursor:default}
+
+/* Solver switcher */
+.solver-tabs{display:flex;gap:8px;margin-bottom:16px}
+.solver-tab{
+  border:1px solid var(--line);border-radius:10px;padding:8px 18px;
+  cursor:pointer;font-size:.85rem;font-weight:600;transition:.2s;
+  background:rgba(255,255,255,0.03);color:var(--muted);
+}
+.solver-tab.active-greedy{background:rgba(255,107,53,0.12);border-color:rgba(255,107,53,0.5);color:var(--g)}
+.solver-tab.active-qaoa{background:rgba(0,229,192,0.1);border-color:rgba(0,229,192,0.4);color:var(--q)}
+.solver-tab.active-both{background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.4);color:var(--c)}
+
+/* Conflict legend */
+.legend-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:.8rem;color:var(--muted)}
+.legend-swatch{width:22px;height:6px;border-radius:99px;flex-shrink:0}
+
+/* ── Zone Grid ── */
+.zone-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.zone-card{
+  border:1px solid var(--line);border-radius:18px;padding:16px;
+  background:rgba(255,255,255,0.02);transition:.4s ease;
+  position:relative;overflow:hidden;
+}
+.zone-card::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  opacity:0;transition:.4s;
+}
+.zone-card.stable::before{background:radial-gradient(circle at 50% 0%,rgba(46,213,115,0.15),transparent 70%)}
+.zone-card.elevated::before{background:radial-gradient(circle at 50% 0%,rgba(255,165,2,0.18),transparent 70%)}
+.zone-card.critical::before{background:radial-gradient(circle at 50% 0%,rgba(255,71,87,0.22),transparent 70%)}
+.zone-card.stable::before,.zone-card.elevated::before,.zone-card.critical::before{opacity:1}
+.zone-id{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.zone-sev{font-size:1.5rem;font-weight:700;margin-bottom:4px}
+.zone-card.stable .zone-sev{color:var(--safe)}
+.zone-card.elevated .zone-sev{color:var(--elev)}
+.zone-card.critical .zone-sev{color:var(--crit)}
+.zone-event{font-size:.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zone-bar{height:3px;border-radius:99px;background:rgba(255,255,255,0.08);margin-top:10px;overflow:hidden}
+.zone-bar-fill{height:100%;border-radius:99px;transition:width 1s ease}
+.zone-card.stable .zone-bar-fill{background:var(--safe)}
+.zone-card.elevated .zone-bar-fill{background:var(--elev)}
+.zone-card.critical .zone-bar-fill{background:var(--crit)}
+
+/* Scenario buttons */
+.scenario-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.scenario-btn{
+  border:1px solid var(--line);border-radius:14px;padding:14px 10px;
+  cursor:pointer;text-align:center;transition:.25s;
+  background:rgba(255,255,255,0.02);
+}
+.scenario-btn:hover{border-color:rgba(0,229,192,0.4);background:rgba(0,229,192,0.05)}
+.scenario-btn.active{border-color:var(--q);background:rgba(0,229,192,0.1);color:var(--q)}
+.scenario-btn .icon{font-size:1.6rem;margin-bottom:6px}
+.scenario-btn .name{font-size:.75rem;font-weight:700;letter-spacing:.05em}
+.scenario-btn .desc{font-size:.7rem;color:var(--muted);margin-top:3px}
+
+/* Event log */
+.event-log{
+  background:rgba(0,0,0,0.4);border:1px solid var(--line);border-radius:14px;
+  height:200px;overflow-y:auto;padding:12px;
+  font-family:'JetBrains Mono',monospace;font-size:.76rem;
+  line-height:1.6;
+}
+.event-log::-webkit-scrollbar{width:4px}
+.event-log::-webkit-scrollbar-track{background:transparent}
+.event-log::-webkit-scrollbar-thumb{background:rgba(0,229,192,0.3);border-radius:99px}
+.log-entry{color:var(--muted);padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.log-entry .ts{color:rgba(0,229,192,0.6)}
+.log-entry .ev{color:var(--y)}
+.log-entry .good{color:var(--safe)}
+.log-entry .warn{color:var(--elev)}
+.log-entry .bad{color:var(--crit)}
+
+/* ── Severity chart ── */
+#severity-canvas{width:100%;height:240px;display:block}
+
+/* ── Architecture flow ── */
+.arch-flow{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:8px 0}
+.arch-node{
+  flex-shrink:0;background:rgba(255,255,255,0.04);border:1px solid var(--line);
+  border-radius:16px;padding:14px 16px;text-align:center;min-width:120px;
+  position:relative;
+}
+.arch-node .icon{font-size:1.5rem;margin-bottom:6px}
+.arch-node .label{font-size:.75rem;font-weight:700;color:var(--ink)}
+.arch-node .sub{font-size:.65rem;color:var(--muted);margin-top:2px}
+.arch-node.highlight{border-color:rgba(0,229,192,0.4);background:rgba(0,229,192,0.07)}
+.arch-arrow{flex-shrink:0;width:40px;display:flex;align-items:center;justify-content:center;position:relative}
+.arch-arrow::before{
+  content:'';position:absolute;height:2px;width:100%;
+  background:linear-gradient(90deg,rgba(0,229,192,0.4),rgba(0,229,192,0.8),rgba(0,229,192,0.4));
+  animation:flow 1.5s linear infinite;
+}
+@keyframes flow{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0% 0 0)}}
+.arch-arrow::after{content:'▶';color:var(--q);font-size:.7rem}
+
+/* ── Scaling chart ── */
+#scaling-canvas{width:100%;height:260px;display:block}
+
+/* ── Cost comparison bars ── */
+.cost-compare{display:flex;flex-direction:column;gap:14px}
+.cost-row{display:grid;grid-template-columns:80px 1fr 70px;gap:10px;align-items:center}
+.cost-label{font-size:.8rem;color:var(--muted);text-align:right}
+.cost-bar-wrap{background:rgba(255,255,255,0.05);border-radius:99px;height:20px;overflow:hidden;position:relative}
+.cost-bar{height:100%;border-radius:99px;transition:width 1.2s cubic-bezier(.17,.55,.45,1);display:flex;align-items:center;padding-left:10px}
+.cost-bar span{font-size:.72rem;font-weight:700;color:rgba(255,255,255,0.9)}
+.cost-value{font-size:.8rem;font-weight:700;text-align:right}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .hero-metrics{grid-template-columns:repeat(2,1fr)}
+  .two-col,.three-col{grid-template-columns:1fr}
+  .zone-grid{grid-template-columns:repeat(2,1fr)}
+  .scenario-grid{grid-template-columns:repeat(2,1fr)}
+  .arch-flow{flex-wrap:wrap;justify-content:center}
+}
+@media(max-width:560px){
+  .hero{padding:28px 20px}
+  .zone-grid{grid-template-columns:1fr 1fr}
+}
+
+/* Glow pulse for active zone */
+@keyframes zonePulse{
+  0%{box-shadow:0 0 0 0 rgba(255,71,87,.4)}
+  70%{box-shadow:0 0 0 14px rgba(255,71,87,0)}
+  100%{box-shadow:0 0 0 0 rgba(255,71,87,0)}
+}
+.zone-card.pulsing{animation:zonePulse 1s ease 3}
+
+/* Chip */
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1px solid var(--line);border-radius:999px;
+  padding:4px 12px;font-size:.77rem;background:rgba(255,255,255,0.04);
+}
+.chip.q{border-color:rgba(0,229,192,.3);color:var(--q);background:rgba(0,229,192,.06)}
+.chip.g{border-color:rgba(255,107,53,.3);color:var(--g);background:rgba(255,107,53,.06)}
+
+/* gap badge */
+.gap-badge{
+  display:inline-block;padding:3px 10px;border-radius:8px;
+  font-size:.75rem;font-weight:700;
+}
+.gap-badge.bad{background:rgba(255,107,53,.15);color:var(--g)}
+.gap-badge.good{background:rgba(0,229,192,.12);color:var(--q)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ── HERO ── -->
+<section class="hero section">
+  <div class="hero-tag">🏟 Continuum · Quantum-Assisted City Routing · Live Demo</div>
+  <h1>Smarter Crowds.<br>Safer Kumbh.</h1>
+  <p>A three-layer predictive + quantum-optimised + stream-driven guidance system for 40 million pilgrims — combining STGNN crowd forecasting, QAOA route assignment, and real-time Kafka event streaming.</p>
+  <div class="hero-metrics">
+    <div class="hero-metric"><strong>770</strong><span>Road Nodes (OSM)</span></div>
+    <div class="hero-metric"><strong id="hm-qaoa">100%</strong><span>QAOA Optimal Match</span></div>
+    <div class="hero-metric"><strong>0.42s</strong><span>Avg QAOA Runtime</span></div>
+    <div class="hero-metric"><strong id="hm-gap">0.0%</strong><span>Optimality Gap</span></div>
+    <div class="hero-metric"><strong id="hm-posture">CRITICAL</strong><span>Live Posture</span></div>
+  </div>
+</section>
+
+<!-- ── SECTION 1: GREEDY vs QAOA ── -->
+<div class="sec-label">01 · Quantum Advantage — Route Comparison</div>
+<div class="section two-col">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--c)"></span>Greedy vs QAOA Route Assignment</div>
+    <div class="card-sub">See how QAOA spreads crowd groups across non-overlapping corridors, reducing shared-edge congestion by up to 67%.</div>
+    <div class="solver-tabs">
+      <div class="solver-tab active-greedy" id="tab-greedy" onclick="setView('greedy')">🔴 Greedy Only</div>
+      <div class="solver-tab" id="tab-qaoa" onclick="setView('qaoa')">🟢 QAOA Only</div>
+      <div class="solver-tab" id="tab-both" onclick="setView('both')">⚡ Side By Side</div>
+    </div>
+    <canvas id="comparison-canvas"></canvas>
+    <div class="legend-row">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--g)"></div>Greedy route</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--q)"></div>QAOA route</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#ff0a54"></div>Shared-edge conflict</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,255,255,.15)"></div>Uncontested corridor</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--y)"></span>Cost Breakdown by Zone</div>
+    <div class="card-sub">QAOA matches the classical optimum in all 4 zones. Greedy accumulates up to 67% penalty from shared-edge overload.</div>
+    <div class="cost-compare" id="cost-bars"></div>
+    <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:10px">
+      <span class="chip q">⚡ QAOA gap: 0.0% all zones</span>
+      <span class="chip g">⚠ Greedy avg gap: 16.8%</span>
+    </div>
+    <div style="margin-top:16px">
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">Scaling regime — where quantum pays off:</div>
+      <canvas id="scaling-canvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION 2: SCENARIO CONTROL ── -->
+<div class="sec-label">02 · Live Scenario Injection & Zone Response</div>
+<div class="section two-col">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--crit)"></span>Scenario Trigger Panel</div>
+    <div class="card-sub">Inject real-world events. Watch zone severity ripple live across the crowd map.</div>
+    <div class="scenario-grid">
+      <div class="scenario-btn" id="sc-vip" onclick="triggerScenario('vip_corridor_lock',4)">
+        <div class="icon">🚨</div><div class="name">VIP Lock</div><div class="desc">Corridor sealed</div>
+      </div>
+      <div class="scenario-btn" id="sc-bridge" onclick="triggerScenario('bridge_bottleneck',2)">
+        <div class="icon">🌉</div><div class="name">Bridge Choke</div><div class="desc">Bottleneck alert</div>
+      </div>
+      <div class="scenario-btn" id="sc-surge" onclick="triggerScenario('sudden_surge',6)">
+        <div class="icon">🌊</div><div class="name">Sudden Surge</div><div class="desc">Flash crowd</div>
+      </div>
+      <div class="scenario-btn" id="sc-medical" onclick="triggerScenario('medical_lane_priority',5)">
+        <div class="icon">🚑</div><div class="name">Medical Lane</div><div class="desc">Priority corridor</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+      <div style="font-size:.8rem;color:var(--muted)">Target Zone Override:</div>
+      <input id="zone-input" type="number" min="0" max="7" value="4" style="
+        width:60px;background:rgba(255,255,255,.06);border:1px solid var(--line);
+        border-radius:8px;padding:6px 10px;color:var(--ink);font:inherit;font-size:.85rem
+      ">
+    </div>
+    <div class="event-log" id="event-log">
+      <div class="log-entry"><span class="ts">[init] </span>System online. Select a scenario to inject a live event.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--safe)"></span>Live Zone Severity Map</div>
+    <div class="card-sub">Zones update in real-time as scenarios propagate through the crowd graph.</div>
+    <div class="zone-grid" id="zone-grid"></div>
+  </div>
+</div>
+
+<!-- ── SECTION 3: PREDICTION TIMELINE ── -->
+<div class="sec-label">03 · STGNN Predictive Layer — Severity Forecast</div>
+<div class="section two-col">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--c)"></span>Zone Severity Timeline</div>
+    <div class="card-sub">Spatiotemporal GNN forecasts severity 6–10 minutes ahead, enabling pre-emptive rerouting before crowds peak.</div>
+    <canvas id="severity-canvas"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--q)"></span>Architecture Pipeline</div>
+    <div class="card-sub">Every event flows through this chain — from Kafka ingestion to citizen guidance in under 1 second.</div>
+    <div class="arch-flow">
+      <div class="arch-node"><div class="icon">📡</div><div class="label">Kafka</div><div class="sub">Stream Events</div></div>
+      <div class="arch-arrow"></div>
+      <div class="arch-node highlight"><div class="icon">🧠</div><div class="label">STGNN</div><div class="sub">Prediction</div></div>
+      <div class="arch-arrow"></div>
+      <div class="arch-node"><div class="icon">🗺</div><div class="label">Zone Model</div><div class="sub">Severity Update</div></div>
+      <div class="arch-arrow"></div>
+      <div class="arch-node highlight"><div class="icon">⚛</div><div class="label">QAOA</div><div class="sub">Re-optimize</div></div>
+      <div class="arch-arrow"></div>
+      <div class="arch-node"><div class="icon">📱</div><div class="label">Mobile API</div><div class="sub">Citizen Guide</div></div>
+    </div>
+    <div style="margin-top:20px">
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Current prediction snapshot</div>
+      <div id="pred-snapshot" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+// ── DATA ──────────────────────────────────────────────────
+const ZONES_BASE = {
+  0:{severity:.273,event:'medical_diversion'},
+  1:{severity:.434,event:'procession_surge'},
+  3:{severity:.594,event:'vip_corridor_lock'},
+  4:{severity:.891,event:'vip_corridor_lock'},
+  5:{severity:.808,event:'bottleneck_alert'},
+  6:{severity:.523,event:'bottleneck_alert'},
+  7:{severity:.864,event:'vip_corridor_lock'},
+};
+
+const ZONES = JSON.parse(JSON.stringify(ZONES_BASE));
+
+const ZONE_DATA = [
+  {zone:0,greedy:37.5283,qaoa:22.4300,match:true,gap:67.3},
+  {zone:1,greedy:163.3321,qaoa:163.3320,match:true,gap:0.00007},
+  {zone:2,greedy:42.3343,qaoa:42.3343,match:true,gap:0.0},
+  {zone:3,greedy:106.2430,qaoa:106.2429,match:true,gap:0.0},
+];
+
+const ROUTES = {
+  greedy:{
+    groups:[
+      {color:'#ff6b35',nodes:[{x:.1,y:.4},{x:.22,y:.35},{x:.35,y:.3},{x:.5,y:.28},{x:.65,y:.32},{x:.78,y:.35},{x:.9,y:.4}]},
+      {color:'#ff9f45',nodes:[{x:.1,y:.6},{x:.22,y:.55},{x:.35,y:.3},{x:.5,y:.28},{x:.65,y:.32},{x:.78,y:.55},{x:.9,y:.6}]},
+      {color:'#ffd166',nodes:[{x:.1,y:.75},{x:.22,y:.65},{x:.35,y:.55},{x:.5,y:.28},{x:.65,y:.55},{x:.78,y:.65},{x:.9,y:.75}]},
+    ]
+  },
+  qaoa:{
+    groups:[
+      {color:'#00e5c0',nodes:[{x:.1,y:.25},{x:.22,y:.2},{x:.35,y:.18},{x:.5,y:.2},{x:.65,y:.22},{x:.78,y:.28},{x:.9,y:.3}]},
+      {color:'#00b4d8',nodes:[{x:.1,y:.5},{x:.22,y:.48},{x:.35,y:.5},{x:.5,y:.55},{x:.65,y:.52},{x:.78,y:.5},{x:.9,y:.5}]},
+      {color:'#a78bfa',nodes:[{x:.1,y:.75},{x:.22,y:.72},{x:.35,y:.78},{x:.5,y:.8},{x:.65,y:.75},{x:.78,y:.72},{x:.9,y:.72}]},
+    ]
+  }
+};
+
+const SCENARIO_EFFECTS = {
+  vip_corridor_lock:{delta:.34,eta:6,conf:'medium'},
+  bridge_bottleneck:{delta:.28,eta:8,conf:'high'},
+  sudden_surge:{delta:.42,eta:4,conf:'medium'},
+  medical_lane_priority:{delta:.18,eta:10,conf:'medium'},
+};
+
+// ── STATE ─────────────────────────────────────────────────
+let currentView = 'greedy';
+let animFrame = null;
+let activeScenario = null;
+let drawProgress = 0;
+let severityHistory = {};
+
+// Init severity history
+Object.keys(ZONES).forEach(z=>{
+  severityHistory[z]=Array.from({length:10},(_,i)=>
+    Math.max(0,ZONES[z].severity - (.08*(9-i)) + (Math.random()*.04-.02))
+  );
+});
+
+// ── HELPERS ───────────────────────────────────────────────
+function clsFor(s){return s>=.75?'critical':s>=.45?'elevated':'stable'}
+function colorFor(s){return s>=.75?'#ff4757':s>=.45?'#ffa502':'#2ed573'}
+function lerp(a,b,t){return a+(b-a)*t}
+function formatTs(){
+  const d=new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+function addLog(msg,cls=''){
+  const log=document.getElementById('event-log');
+  const div=document.createElement('div');
+  div.className='log-entry';
+  div.innerHTML=`<span class="ts">[${formatTs()}] </span><span class="${cls}">${msg}</span>`;
+  log.appendChild(div);
+  log.scrollTop=log.scrollHeight;
+}
+
+// ── ZONE GRID ─────────────────────────────────────────────
+function renderZones(){
+  const grid=document.getElementById('zone-grid');
+  grid.innerHTML='';
+  Object.entries(ZONES).sort((a,b)=>a[0]-b[0]).forEach(([id,z])=>{
+    const cls=clsFor(z.severity);
+    const div=document.createElement('div');
+    div.className=`zone-card ${cls}`;
+    div.id=`zone-${id}`;
+    div.innerHTML=`
+      <div class="zone-id">Zone ${id}</div>
+      <div class="zone-sev">${z.severity.toFixed(3)}</div>
+      <div class="zone-event">${z.event.replace(/_/g,' ')}</div>
+      <div class="zone-bar"><div class="zone-bar-fill" style="width:${(z.severity*100).toFixed(1)}%"></div></div>
+    `;
+    grid.appendChild(div);
+  });
+  // update posture
+  const mx=Math.max(...Object.values(ZONES).map(z=>z.severity));
+  document.getElementById('hm-posture').textContent=mx>=.75?'CRITICAL':mx>=.45?'ELEVATED':'STABLE';
+}
+
+function pulseZone(id){
+  const el=document.getElementById(`zone-${id}`);
+  if(!el)return;
+  el.classList.add('pulsing');
+  setTimeout(()=>el.classList.remove('pulsing'),3000);
+}
+
+// ── COST BARS ─────────────────────────────────────────────
+function renderCostBars(){
+  const el=document.getElementById('cost-bars');
+  const maxVal=Math.max(...ZONE_DATA.flatMap(d=>[d.greedy,d.qaoa]));
+  el.innerHTML=ZONE_DATA.map(d=>{
+    const gp=(d.greedy/maxVal*100).toFixed(1);
+    const qp=(d.qaoa/maxVal*100).toFixed(1);
+    return `
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:.78rem;color:var(--muted)">Zone ${d.zone}</span>
+          <span class="gap-badge ${d.gap>5?'bad':'good'}">${d.gap>5?'⚠ '+d.gap.toFixed(1)+'% gap':'✓ Optimal'}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:44px;font-size:.7rem;color:var(--g);text-align:right">Greedy</span>
+            <div class="cost-bar-wrap" style="flex:1">
+              <div class="cost-bar" style="width:${gp}%;background:linear-gradient(90deg,rgba(255,107,53,.8),rgba(255,107,53,.4))">
+                <span>${d.greedy.toFixed(1)}</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:44px;font-size:.7rem;color:var(--q);text-align:right">QAOA</span>
+            <div class="cost-bar-wrap" style="flex:1">
+              <div class="cost-bar" style="width:${qp}%;background:linear-gradient(90deg,rgba(0,229,192,.8),rgba(0,229,192,.3))">
+                <span>${d.qaoa.toFixed(1)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── COMPARISON CANVAS ─────────────────────────────────────
+function setView(v){
+  currentView=v;
+  document.querySelectorAll('.solver-tab').forEach(t=>t.className='solver-tab');
+  if(v==='greedy') document.getElementById('tab-greedy').className='solver-tab active-greedy';
+  if(v==='qaoa')   document.getElementById('tab-qaoa').className='solver-tab active-qaoa';
+  if(v==='both')   document.getElementById('tab-both').className='solver-tab active-both';
+  drawProgress=0;
+  cancelAnimationFrame(animFrame);
+  animateComparison();
+}
+
+function detectConflicts(routes){
+  const edges=new Map();
+  routes.forEach((r,ri)=>{
+    for(let i=0;i<r.nodes.length-1;i++){
+      const key=`${Math.round(r.nodes[i].x*100)},${Math.round(r.nodes[i].y*100)}-${Math.round(r.nodes[i+1].x*100)},${Math.round(r.nodes[i+1].y*100)}`;
+      if(!edges.has(key))edges.set(key,[]);
+      edges.get(key).push(ri);
+    }
+  });
+  const conflicts=new Set();
+  edges.forEach((rids,k)=>{if(rids.length>1)conflicts.add(k)});
+  return conflicts;
+}
+
+function drawRoutes(ctx,routes,W,H,alpha,showConflicts,progress){
+  const conflicts=showConflicts?detectConflicts(routes):new Set();
+  routes.forEach(r=>{
+    const pts=r.nodes.map(n=>({x:n.x*W,y:n.y*H}));
+    const totalPts=Math.max(2,Math.floor(pts.length*progress));
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<totalPts;i++)ctx.lineTo(pts[i].x,pts[i].y);
+    ctx.strokeStyle=r.color+'CC';
+    ctx.lineWidth=5;
+    ctx.lineCap='round';
+    ctx.lineJoin='round';
+    ctx.globalAlpha=alpha;
+    ctx.stroke();
+    // dots
+    pts.slice(0,totalPts).forEach((pt,i)=>{
+      ctx.beginPath();ctx.arc(pt.x,pt.y,5,0,Math.PI*2);
+      ctx.fillStyle=r.color;
+      ctx.globalAlpha=alpha*.9;ctx.fill();
+    });
+  });
+  // conflict highlights
+  if(showConflicts&&progress>0.8){
+    routes.forEach(r=>{
+      const pts=r.nodes.map(n=>({x:n.x*W,y:n.y*H}));
+      for(let i=0;i<pts.length-1;i++){
+        const key=`${Math.round(r.nodes[i].x*100)},${Math.round(r.nodes[i].y*100)}-${Math.round(r.nodes[i+1].x*100)},${Math.round(r.nodes[i+1].y*100)}`;
+        if(conflicts.has(key)){
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[i+1].x,pts[i+1].y);
+          ctx.strokeStyle='#ff0a54';ctx.lineWidth=9;ctx.globalAlpha=.55;
+          ctx.stroke();
+        }
+      }
+    });
+  }
+  ctx.globalAlpha=1;
+}
+
+function animateComparison(){
+  const canvas=document.getElementById('comparison-canvas');
+  if(!canvas)return;
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.offsetWidth,H=canvas.offsetHeight;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  drawProgress=Math.min(1,drawProgress+.022);
+
+  // Background
+  ctx.fillStyle='rgba(5,9,15,1)';ctx.fillRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=W/8){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+  for(let y=0;y<H;y+=H/5){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+
+  // Zone bands
+  const bandW=W/ZONE_DATA.length;
+  ZONE_DATA.forEach((z,i)=>{
+    const sev=ZONES[z.zone]?.severity||0;
+    ctx.fillStyle=`${colorFor(sev)}0A`;
+    ctx.fillRect(i*bandW,0,bandW,H);
+    ctx.fillStyle='rgba(255,255,255,0.06)';
+    ctx.font='bold 11px Space Grotesk,sans-serif';
+    ctx.fillText(`Zone ${z.zone}`,i*bandW+8,16);
+  });
+
+  if(currentView==='greedy'||currentView==='both'){
+    drawRoutes(ctx,ROUTES.greedy.groups,W,H,currentView==='both'?.7:1,true,drawProgress);
+  }
+  if(currentView==='qaoa'||currentView==='both'){
+    drawRoutes(ctx,ROUTES.qaoa.groups,W,H,currentView==='both'?.85:1,false,drawProgress);
+  }
+
+  // Labels
+  if(currentView==='both'){
+    ctx.fillStyle='rgba(255,107,53,.85)';ctx.font='bold 13px Space Grotesk,sans-serif';ctx.fillText('◀ GREEDY — shared conflicts',12,H-12);
+    ctx.fillStyle='rgba(0,229,192,.85)';ctx.textAlign='right';ctx.fillText('QAOA — conflict-free ▶',W-12,H-12);ctx.textAlign='left';
+  }
+
+  if(drawProgress<1) animFrame=requestAnimationFrame(animateComparison);
+}
+
+// ── SCALING CANVAS ────────────────────────────────────────
+function drawScaling(){
+  const canvas=document.getElementById('scaling-canvas');
+  if(!canvas)return;
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.offsetWidth,H=canvas.offsetHeight;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  const pts=[9,16,30,48];
+  const exact=[.01,.05,2.8,120];
+  const greedy=[.005,.007,.012,.018];
+  const qaoa_=[.08,.22,.55,1.4];
+
+  const maxY=Math.max(...exact);
+  const px=(i)=>40+i*(W-60)/(pts.length-1);
+  const py=(v)=>H-30-(Math.log(v+.001)/Math.log(maxY))*(H-50);
+
+  ctx.fillStyle='rgba(5,9,15,1)';ctx.fillRect(0,0,W,H);
+
+  // axes
+  ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(40,10);ctx.lineTo(40,H-28);ctx.lineTo(W-10,H-28);ctx.stroke();
+
+  // x labels
+  pts.forEach((p,i)=>{
+    ctx.fillStyle='rgba(255,255,255,.4)';ctx.font='10px Space Grotesk,sans-serif';ctx.textAlign='center';
+    ctx.fillText(p+'v',px(i),H-14);
+  });
+  ctx.textAlign='left';
+  ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='9px Space Grotesk';ctx.fillText('Decision variables →',W/2-30,H-2);
+  ctx.save();ctx.translate(10,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('Runtime (log scale)',0,0);ctx.restore();
+
+  function drawLine(data,color,dash=[]){
+    ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.setLineDash(dash);
+    data.forEach((v,i)=>{i===0?ctx.moveTo(px(i),py(v)):ctx.lineTo(px(i),py(v))});
+    ctx.stroke();ctx.setLineDash([]);
+    data.forEach((v,i)=>{ctx.beginPath();ctx.arc(px(i),py(v),4,0,Math.PI*2);ctx.fillStyle=color;ctx.fill()});
+  }
+
+  // Quantum advantage region
+  const crossX=px(1.5);
+  ctx.fillStyle='rgba(0,229,192,.06)';
+  ctx.fillRect(crossX,10,W-10-crossX,H-38);
+  ctx.fillStyle='rgba(0,229,192,.3)';ctx.font='bold 10px Space Grotesk';ctx.textAlign='center';
+  ctx.fillText('← quantum advantage zone →',crossX+(W-10-crossX)/2,24);ctx.textAlign='left';
+
+  drawLine(exact,'#ff6b35');
+  drawLine(greedy,'#ffd166',[4,3]);
+  drawLine(qaoa_,'#00e5c0');
+
+  // legend
+  [['#ff6b35','Classical Exact'],['#ffd166','Greedy Heuristic'],['#00e5c0','QAOA Simulator']].forEach(([c,l],i)=>{
+    const y=H-48+i*0;
+    ctx.fillStyle=c;ctx.fillRect(46,36+i*15,18,3);
+    ctx.fillStyle='rgba(255,255,255,.55)';ctx.font='9px Space Grotesk';ctx.fillText(l,68,40+i*15);
+  });
+}
+
+// ── SEVERITY CHART ────────────────────────────────────────
+let sevAnim=0;
+function drawSeverity(){
+  const canvas=document.getElementById('severity-canvas');
+  if(!canvas)return;
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.offsetWidth,H=canvas.offsetHeight;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  ctx.fillStyle='rgba(5,9,15,1)';ctx.fillRect(0,0,W,H);
+
+  const COLS={'4':'#ff4757','7':'#ff6b35','5':'#ffa502','3':'#a78bfa','6':'#00e5c0','1':'#00b4d8','0':'#2ed573'};
+  const step=(W-40)/(12);
+  const padL=40,padB=28,padT=14;
+  const hh=H-padB-padT;
+
+  ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=1;
+  [0,.25,.5,.75,1].forEach(v=>{
+    const y=padT+hh*(1-v);
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.25)';ctx.font='9px Space Grotesk';ctx.fillText((v*100).toFixed(0)+'%',4,y+3);
+  });
+
+  Object.entries(severityHistory).forEach(([zid,hist])=>{
+    const col=COLS[zid]||'#aaa';
+    ctx.beginPath();
+    // add predicted future point
+    const future=Math.min(1,hist[hist.length-1]+(ZONES[zid]?.severity||0)-hist[hist.length-1]);
+    const all=[...hist,future,Math.min(1,future*1.05)];
+    all.forEach((v,i)=>{
+      const x=padL+i*step;
+      const y=padT+hh*(1-v);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();
+
+    // fill
+    const last=all[all.length-1];
+    const lx=padL+(all.length-1)*step;
+    ctx.lineTo(lx,padT+hh);ctx.lineTo(padL,padT+hh);ctx.closePath();
+    ctx.fillStyle=col.replace('#','rgba(').replace(/^rgba\((......)$/,`rgba($1`)+',0.06)';
+    ctx.fillStyle=col+'14';ctx.fill();
+
+    // dashed predicted tail
+    ctx.beginPath();
+    ctx.setLineDash([4,3]);ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.globalAlpha=.5;
+    const pi=hist.length-1;
+    ctx.moveTo(padL+pi*step,padT+hh*(1-hist[pi]));
+    all.slice(pi+1).forEach((v,i)=>{ctx.lineTo(padL+(pi+1+i)*step,padT+hh*(1-v))});
+    ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+
+    // dot at current
+    const cx=padL+(hist.length-1)*step,cy=padT+hh*(1-hist[hist.length-1]);
+    ctx.beginPath();ctx.arc(cx,cy,4.5,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.8)';ctx.font='bold 9px Space Grotesk';ctx.fillText(`Z${zid}`,cx+6,cy+3);
+  });
+
+  // time axis
+  ctx.fillStyle='rgba(255,255,255,.2)';ctx.font='9px Space Grotesk';ctx.textAlign='center';
+  ['−8m','−6','−4','−2','now','▶ +2','▶ +4'].forEach((t,i)=>{
+    ctx.fillText(t,padL+i*(step*2),H-12);
+  });
+  ctx.textAlign='left';
+  ctx.fillStyle='rgba(0,229,192,.4)';ctx.font='9px Space Grotesk';
+  ctx.fillText('predicted →',padL+(hist=>hist)(10)*step,padT+6);
+}
+
+// ── PREDICTION SNAPSHOT ───────────────────────────────────
+function renderPredSnap(){
+  const el=document.getElementById('pred-snapshot');
+  const top=Object.entries(ZONES).sort((a,b)=>b[1].severity-a[1].severity).slice(0,4);
+  el.innerHTML=top.map(([id,z])=>{
+    const cls=clsFor(z.severity);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--line)">
+      <span style="width:10px;height:10px;border-radius:50%;background:${colorFor(z.severity)};flex-shrink:0"></span>
+      <span style="flex:1;font-size:.82rem">Zone ${id} — <span style="color:var(--muted)">${z.event.replace(/_/g,' ')}</span></span>
+      <span style="font-weight:700;font-size:.88rem;color:${colorFor(z.severity)}">${z.severity.toFixed(3)}</span>
+      <span style="font-size:.7rem;color:var(--muted)">ETA ~${cls==='critical'?'4–6':cls==='elevated'?'8–10':'15+'}m</span>
+    </div>`;
+  }).join('');
+}
+
+// ── SCENARIO TRIGGER ──────────────────────────────────────
+function triggerScenario(id,defaultZone){
+  const zoneId=parseInt(document.getElementById('zone-input').value)||defaultZone;
+  const effect=SCENARIO_EFFECTS[id];
+
+  // Update active btn
+  ['vip','bridge','surge','medical'].forEach(k=>document.getElementById(`sc-${k}`)?.classList.remove('active'));
+  const btns={vip_corridor_lock:'vip',bridge_bottleneck:'bridge',sudden_surge:'surge',medical_lane_priority:'medical'};
+  document.getElementById(`sc-${btns[id]}`)?.classList.add('active');
+
+  // Apply severity
+  const prev=ZONES[zoneId]?.severity||.3;
+  if(!ZONES[zoneId])ZONES[zoneId]={severity:.3,event:id};
+  const newSev=Math.min(1,prev+effect.delta);
+  ZONES[zoneId].severity=newSev;
+  ZONES[zoneId].event=id;
+
+  // Update history
+  if(!severityHistory[zoneId])severityHistory[zoneId]=Array(10).fill(prev);
+  severityHistory[zoneId].push(newSev);
+  if(severityHistory[zoneId].length>10)severityHistory[zoneId].shift();
+
+  activeScenario={scenario_id:id,target_zone:zoneId};
+  const cls=clsFor(newSev);
+
+  addLog(`Scenario injected: <span class="ev">${id.replace(/_/g,' ')}</span>`, '');
+  addLog(`Zone ${zoneId} severity: ${prev.toFixed(3)} → <span class="${cls==='critical'?'bad':cls==='elevated'?'warn':'good'}">${newSev.toFixed(3)}</span>`,'');
+  addLog(`Overload ETA: ${effect.eta} min | Confidence: ${effect.conf}`,'good');
+  addLog(`⚡ QAOA re-routing triggered for Zone ${zoneId}...`,'');
+  setTimeout(()=>addLog(`✓ New conflict-free route computed for Zone ${zoneId}.`,'good'),600);
+
+  renderZones();
+  pulseZone(zoneId);
+  drawSeverity();
+  renderPredSnap();
+
+  // Try real API
+  fetch('/api/scenario',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({scenario_id:id,target_zone:zoneId})
+  }).catch(()=>{});
+}
+
+// ── INIT ──────────────────────────────────────────────────
+function init(){
+  renderZones();
+  renderCostBars();
+  renderPredSnap();
+
+  // Resize observer for canvas
+  const ro=new ResizeObserver(()=>{
+    cancelAnimationFrame(animFrame);
+    drawProgress=0;
+    animateComparison();
+    drawScaling();
+    drawSeverity();
+  });
+  document.querySelectorAll('canvas').forEach(c=>ro.observe(c));
+
+  animateComparison();
+  drawScaling();
+  drawSeverity();
+
+  // Live status polling
+  async function pollStatus(){
+    try{
+      const s=await fetch('/api/status').then(r=>r.json());
+      if(s.top_zones){
+        s.top_zones.forEach(z=>{
+          if(ZONES[z.zone_id]!==undefined){
+            ZONES[z.zone_id].severity=z.severity;
+            ZONES[z.zone_id].event=z.latest_event_type||ZONES[z.zone_id].event;
+          }
+        });
+        renderZones();
+        renderPredSnap();
+      }
+      if(s.benchmark){
+        document.getElementById('hm-qaoa').textContent=s.benchmark.qaoa_optimal_match_percent?.toFixed(0)+'%';
+        document.getElementById('hm-gap').textContent=(s.benchmark.avg_qaoa_gap_percent||0).toFixed(1)+'%';
+      }
+      if(s.active_scenario){
+        addLog(`API scenario active: ${s.active_scenario.scenario_id} on Zone ${s.active_scenario.target_zone}`,'ev');
+      }
+    }catch(_){}
+  }
+  pollStatus();
+  setInterval(pollStatus,12000);
+}
+
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

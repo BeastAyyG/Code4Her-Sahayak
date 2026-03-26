@@ -1,4 +1,4 @@
-"""Environment verification for the MahaKhumb sprint."""
+"""Environment verification for the Continuum sprint."""
 
 from __future__ import annotations
 

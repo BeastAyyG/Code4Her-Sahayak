@@ -1,4 +1,4 @@
-# MahaKhumb Quantum Sprint
+# Continuum Quantum Sprint
 
 This repo is a hackathon-style scaffold for a 24-hour demo around predicted hotspot analysis and multi-group local route-assignment benchmarks for the Kumbh Mela area near Prayagraj.
 
@@ -31,6 +31,8 @@ This repo is a hackathon-style scaffold for a 24-hour demo around predicted hots
 - `demo_dashboard_3.html`: generated Demo 3 internal explainer dashboard.
 - `mobile_guide_server.py`: Phase 2 phone-guidance API server and mobile web host.
 - `mobile_phase2.html`: mobile-first citizen guidance client for safe-route advisory.
+- `production_check.py`: verifies required artifacts and checks the live server endpoints.
+- `PRODUCTION.md`: production-oriented runtime notes and readiness semantics.
 
 ## Setup
 
@@ -89,6 +91,7 @@ To open on a phone connected to the same Wi-Fi, use the network URL printed by t
 Available API endpoints:
 
 - `GET /api/health`
+- `GET /api/ready`
 - `GET /api/status`
 - `GET /api/destinations`
 - `POST /api/scenario`
@@ -178,23 +181,39 @@ Core runtime knobs live in `config.py` and can be overridden with environment va
 Examples:
 
 ```powershell
-$env:MAHAKHUMB_FORCE_SYNTHETIC = "1"
-$env:MAHAKHUMB_CLUSTER_COUNT = "6"
-$env:MAHAKHUMB_MAX_CLUSTER_NODES = "3"
+$env:CONTINUUM_FORCE_SYNTHETIC = "1"
+$env:CONTINUUM_CLUSTER_COUNT = "6"
+$env:CONTINUUM_MAX_CLUSTER_NODES = "3"
 python pipeline.py
 ```
 
 Important overrides:
 
-- `MAHAKHUMB_FORCE_SYNTHETIC`
-- `MAHAKHUMB_KEY_NODE_COUNT`
-- `MAHAKHUMB_CLUSTER_COUNT`
-- `MAHAKHUMB_MAX_QAOA_CLUSTERS`
-- `MAHAKHUMB_MAX_CLUSTER_NODES`
-- `MAHAKHUMB_QAOA_MAXITER`
-- `MAHAKHUMB_STGNN_EPOCHS`
-- `MAHAKHUMB_STREAM_EVENT_COUNT`
-- `MAHAKHUMB_STREAM_EVENT_INTERVAL_MS`
+- `CONTINUUM_APP_ENV`
+- `CONTINUUM_ARTIFACT_DIR`
+- `CONTINUUM_FORCE_SYNTHETIC`
+- `CONTINUUM_KEY_NODE_COUNT`
+- `CONTINUUM_CLUSTER_COUNT`
+- `CONTINUUM_MAX_QAOA_CLUSTERS`
+- `CONTINUUM_MAX_CLUSTER_NODES`
+- `CONTINUUM_QAOA_MAXITER`
+- `CONTINUUM_STGNN_EPOCHS`
+- `CONTINUUM_STREAM_EVENT_COUNT`
+- `CONTINUUM_STREAM_EVENT_INTERVAL_MS`
+
+Server overrides:
+
+- `CONTINUUM_SERVER_ALLOWED_ORIGIN`
+- `CONTINUUM_SERVER_ENABLE_CORS`
+- `CONTINUUM_SERVER_MAX_BODY_BYTES`
+
+## Production Check
+
+```powershell
+python production_check.py
+```
+
+This verifies that the required artifacts exist and that the mobile guidance server responds correctly on `/api/health`, `/api/ready`, and `/api/status`.
 
 ## Notes
 

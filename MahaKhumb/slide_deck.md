@@ -4,7 +4,7 @@
 
 **Quantum-Assisted Multi-Group Routing Benchmark for MahaKumbh**
 
-- MahaKhumb sprint demo
+- Continuum sprint demo
 - Real map + zoning + QAOA routing
 
 ## Slide 2: The Emergency Routing Problem
@@ -15,28 +15,28 @@
 
 ## Slide 3: Architecture
 
-- Use [architecture_diagram.md](C:/Users/ramkr/code%20for%20her/code4her/MahaKhumb/architecture_diagram.md)
+- Use [architecture_diagram.md](C:/Users/ramkr/code%20for%20her/code4her/Continuum/architecture_diagram.md)
 - Emphasize the 3-layer hybrid design.
 
 ## Slide 4: Real Prayagraj Graph
 
-- Use [output_layer1_network.png](C:/Users/ramkr/code%20for%20her/code4her/MahaKhumb/output_layer1_network.png)
+- Use [output_layer1_network.png](C:/Users/ramkr/code%20for%20her/code4her/Continuum/output_layer1_network.png)
 - Mention the current verified run: 770 nodes, 1852 edges.
 
 ## Slide 5: Zone Decomposition
 
-- Use [output_layer2_clusters.png](C:/Users/ramkr/code%20for%20her/code4her/MahaKhumb/output_layer2_clusters.png)
+- Use [output_layer2_clusters.png](C:/Users/ramkr/code%20for%20her/code4her/Continuum/output_layer2_clusters.png)
 - 40 important intersections reduced into 8 zones.
 
 ## Slide 6: Quantum vs Classical
 
-- Use [output_barchart.png](C:/Users/ramkr/code%20for%20her/code4her/MahaKhumb/output_barchart.png)
+- Use [output_barchart.png](C:/Users/ramkr/code%20for%20her/code4her/Continuum/output_barchart.png)
 - Current run: QAOA is compared against brute-force optimum and greedy assignment on the same binary route-allocation objective.
 - That honesty helps, because the benchmark reports feasibility instead of hiding failures.
 
 ## Slide 7: Operational View
 
-- Use [output_route_overlay.png](C:/Users/ramkr/code%20for%20her/code4her/MahaKhumb/output_route_overlay.png)
+- Use [output_route_overlay.png](C:/Users/ramkr/code%20for%20her/code4her/Continuum/output_route_overlay.png)
 - Show local routes and backbone logic as a control-room friendly picture.
 
 ## Slide 8: The Quantum Scaling Trajectory (Honesty Matters)

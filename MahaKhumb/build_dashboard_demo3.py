@@ -5,38 +5,42 @@ from __future__ import annotations
 import base64
 import html
 import json
-import pickle
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from artifact_utils import read_json_file, read_pickle_file, write_text_atomic
+from config import (
+    BARCHART_IMAGE_OUTPUT,
+    CLUSTER_IMAGE_OUTPUT,
+    CLUSTER_OUTPUT,
+    COMPARISON_IMAGE_OUTPUT,
+    GRAPH_OUTPUT,
+    GRAPH_IMAGE_OUTPUT,
+    INTERNAL_DASHBOARD_OUTPUT,
+    PREDICTIVE_STATE_OUTPUT,
+    QAOA_OUTPUT,
+    REPORT_JSON_OUTPUT,
+    ROUTE_OVERLAY_IMAGE_OUTPUT,
+    SIMULATION_STATE_OUTPUT,
+)
 
-REPORT_PATH = Path("sprint_report.json")
-PREDICTIVE_PATH = Path("predictive_state.json")
-SIMULATION_PATH = Path("simulation_state.json")
-QAOA_PATH = Path("qaoa_results.pkl")
-CLUSTER_PATH = Path("cluster_data.pkl")
-OUTPUT_PATH = Path("demo_dashboard_3.html")
+REPORT_PATH = REPORT_JSON_OUTPUT
+PREDICTIVE_PATH = PREDICTIVE_STATE_OUTPUT
+SIMULATION_PATH = SIMULATION_STATE_OUTPUT
+QAOA_PATH = QAOA_OUTPUT
+CLUSTER_PATH = CLUSTER_OUTPUT
+OUTPUT_PATH = INTERNAL_DASHBOARD_OUTPUT
 
 
 def _load_json(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
+    payload = read_json_file(path, default={})
+    return payload if isinstance(payload, dict) else {}
 
 
 def _load_pickle(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        with path.open("rb") as handle:
-            payload = pickle.load(handle)
-        return payload if isinstance(payload, dict) else {}
-    except Exception:
-        return {}
+    payload = read_pickle_file(path, default={})
+    return payload if isinstance(payload, dict) else {}
 
 
 def _as_float(value: Any, default: float = 0.0) -> float:
@@ -271,6 +275,153 @@ def _event_rows(events: list[Any]) -> str:
     )
 
 
+def _severity_tone(value: float) -> str:
+    if value >= 0.75:
+        return "bad"
+    if value >= 0.45:
+        return "warn"
+    return "good"
+
+
+def _zone_risk_strip(simulation: dict[str, Any]) -> str:
+    zone_state = _safe_dict(simulation.get("zones"))
+    rows: list[dict[str, Any]] = []
+    for zone_id, payload in zone_state.items():
+        zone = _safe_dict(payload)
+        rows.append(
+            {
+                "zone": _as_int(zone_id),
+                "severity": _as_float(zone.get("severity")),
+                "avg": _as_float(zone.get("avg_severity")),
+                "peak": _as_float(zone.get("peak_severity")),
+                "event_type": zone.get("latest_event_type", "baseline"),
+                "events": _as_int(zone.get("event_count")),
+            }
+        )
+    rows.sort(key=lambda row: row["severity"], reverse=True)
+    if not rows:
+        return "<p class='muted'>No live zone state available.</p>"
+
+    cards: list[str] = []
+    for row in rows[:6]:
+        width = max(8, min(100, int(round(row["severity"] * 100))))
+        avg_width = max(6, min(100, int(round(row["avg"] * 100))))
+        peak_width = max(6, min(100, int(round(row["peak"] * 100))))
+        tone = _severity_tone(row["severity"])
+        cards.append(
+            """
+            <div class="risk-card">
+              <div class="risk-card-head">
+                <strong>Zone {zone}</strong>
+                <span class="pill {tone}">{severity:.2f}</span>
+              </div>
+              <p>{event_type} · {events} event(s)</p>
+              <div class="mini-bars">
+                <div>
+                  <span>Now</span>
+                  <div class="mini-track"><div class="mini-fill {tone}" style="width:{width}%"></div></div>
+                </div>
+                <div>
+                  <span>Avg</span>
+                  <div class="mini-track"><div class="mini-fill neutral" style="width:{avg_width}%"></div></div>
+                </div>
+                <div>
+                  <span>Peak</span>
+                  <div class="mini-track"><div class="mini-fill bad" style="width:{peak_width}%"></div></div>
+                </div>
+              </div>
+            </div>
+            """.format(
+                zone=row["zone"],
+                tone=tone,
+                severity=row["severity"],
+                event_type=_h(str(row["event_type"]).replace("_", " ")),
+                events=row["events"],
+                width=width,
+                avg_width=avg_width,
+                peak_width=peak_width,
+            )
+        )
+    return "\n".join(cards)
+
+
+def _build_svg_polyline(values: list[float], stroke: str) -> str:
+    if not values:
+        return ""
+    width = 360
+    height = 150
+    pad_x = 18
+    pad_y = 18
+    span_x = max(1, len(values) - 1)
+    max_val = max(max(values), 1.0)
+    min_val = min(0.0, min(values))
+    span_y = max(0.001, max_val - min_val)
+    points: list[str] = []
+    for idx, value in enumerate(values):
+        x = pad_x + ((width - (pad_x * 2)) * (idx / span_x))
+        y = height - pad_y - ((height - (pad_y * 2)) * ((value - min_val) / span_y))
+        points.append(f"{x:.1f},{y:.1f}")
+    area = " ".join(points + [f"{width - pad_x:.1f},{height - pad_y:.1f}", f"{pad_x:.1f},{height - pad_y:.1f}"])
+    return """
+    <svg viewBox="0 0 360 150" class="chart-svg" role="img" aria-label="Zone severity trend">
+      <defs>
+        <linearGradient id="severity-fill" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="{stroke}" stop-opacity="0.35"></stop>
+          <stop offset="100%" stop-color="{stroke}" stop-opacity="0.02"></stop>
+        </linearGradient>
+      </defs>
+      <line x1="18" y1="132" x2="342" y2="132" class="chart-axis"></line>
+      <line x1="18" y1="18" x2="18" y2="132" class="chart-axis"></line>
+      <polygon points="{area}" fill="url(#severity-fill)"></polygon>
+      <polyline points="{points}" fill="none" stroke="{stroke}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+    </svg>
+    """.format(stroke=stroke, area=area, points=" ".join(points))
+
+
+def _severity_line_chart(simulation: dict[str, Any]) -> str:
+    zone_state = _safe_dict(simulation.get("zones"))
+    rows: list[tuple[int, float]] = []
+    for zone_id, payload in zone_state.items():
+        zone = _safe_dict(payload)
+        rows.append((_as_int(zone_id), _as_float(zone.get("severity"))))
+    rows.sort(key=lambda item: item[0])
+    if not rows:
+        return "<p class='muted'>No severity chart available.</p>"
+    return _build_svg_polyline([value for _, value in rows], "#0f766e")
+
+
+def _solver_bars(quantum_control: dict[str, Any]) -> str:
+    raw_exact = quantum_control.get("exact_cost")
+    raw_greedy = quantum_control.get("greedy_cost")
+    raw_qaoa = quantum_control.get("qaoa_cost")
+    if raw_exact is None and raw_greedy is None and raw_qaoa is None:
+        return "<p class='muted'>No local benchmark exists for the current hot zone, so solver cost bars are hidden.</p>"
+    exact_cost = _as_float(raw_exact)
+    greedy_cost = _as_float(raw_greedy)
+    qaoa_cost = _as_float(raw_qaoa)
+    data = [
+        ("Exact", exact_cost, "good"),
+        ("Greedy", greedy_cost, "warn"),
+        ("QAOA", qaoa_cost, "accent"),
+    ]
+    max_val = max([value for _, value, _ in data] + [1.0])
+    rows: list[str] = []
+    for label, value, tone in data:
+        width = max(8, min(100, int(round((value / max_val) * 100)))) if value > 0 else 8
+        rows.append(
+            """
+            <div class="bar-row">
+              <div class="bar-meta">
+                <span>{label}</span>
+                <strong>{value:.2f}</strong>
+              </div>
+              <div class="bar-track"><div class="bar-fill {tone}" style="width:{width}%"></div></div>
+            </div>
+            """.format(label=label, value=value, tone=tone, width=width)
+        )
+    return "\n".join(rows)
+
+
 def _top_zone_prediction(simulation: dict[str, Any]) -> dict[str, Any]:
     zone_state = _safe_dict(simulation.get("zones"))
     rows: list[dict[str, Any]] = []
@@ -370,10 +521,10 @@ def _quantum_control(zone_row: dict[str, Any]) -> dict[str, Any]:
             "candidate_routes": 0,
             "conflict_edges": 0,
             "suitability": "low",
-            "greedy_cost": 0.0,
-            "qaoa_cost": 0.0,
-            "exact_cost": 0.0,
-            "qaoa_runtime": 0.0,
+            "greedy_cost": None,
+            "qaoa_cost": None,
+            "exact_cost": None,
+            "qaoa_runtime": None,
         }
     groups = _as_int(zone_row.get("group_count"))
     route_options = _as_int(zone_row.get("route_options_per_group"))
@@ -434,14 +585,70 @@ def main() -> None:
     cross_zone_rows_html = _cross_zone_rows(cross_zone_result)
     entry_point_rows_html = _entry_point_rows(zone_entry_pts)
     event_rows_html = _event_rows(_safe_list(simulation.get("events")))
+    risk_strip_html = _zone_risk_strip(simulation)
+    severity_chart_html = _severity_line_chart(simulation)
+    solver_bar_html = _solver_bars(quantum_control)
+    top_zone_rows: list[tuple[int, float]] = []
+    for zone_id, payload in _safe_dict(simulation.get("zones")).items():
+        zone_payload = _safe_dict(payload)
+        top_zone_rows.append((_as_int(zone_id), _as_float(zone_payload.get("severity"))))
+    top_zone_rows.sort(key=lambda item: item[1], reverse=True)
+    top_zone_labels = ", ".join(
+        f"Zone {zone_id} ({severity:.2f})"
+        for zone_id, severity in top_zone_rows[:3]
+    )
+    risk_explainer_html = f"""
+      <div class="explain-card">
+        <div class="eyebrow">How To Read It</div>
+        <h3>Left panel = live zone pressure</h3>
+        <p>The colored bars rank zones by current severity. Red means urgent crowd pressure, amber means elevated, and green means manageable. Right now the hottest zones are <code>{_h(top_zone_labels or 'n/a')}</code>.</p>
+      </div>
+      <div class="explain-card">
+        <h3>What operators do with it</h3>
+        <p>Use this panel first to decide which zone needs intervention, barricade changes, or rerouting. Event counts show whether a zone is suffering one isolated incident or repeated pressure.</p>
+      </div>
+    """
+    severity_explainer_html = f"""
+      <div class="explain-card">
+        <div class="eyebrow">Chart Meaning</div>
+        <h3>Left chart = severity by zone</h3>
+        <p>The line plot maps current simulated severity across zone ids. Taller peaks mean that local movement is becoming harder to control. The current forecasted risk zone is <code>Zone {_h(control_prediction.get("risk_zone"))}</code> with ETA <code>{_as_int(control_prediction.get("overload_eta_minutes"))} min</code>.</p>
+      </div>
+      <div class="explain-card">
+        <h3>Why it matters</h3>
+        <p>This gives an at-a-glance map of where routing pressure is concentrated before the operator reads the detailed event table.</p>
+      </div>
+    """
+    solver_explainer_html = f"""
+      <div class="explain-card">
+        <div class="eyebrow">Solver Meaning</div>
+        <h3>Left bars = route quality</h3>
+        <p>Lower cost is better because the objective combines travel burden and conflict penalties. When QAOA matches exact, the quantum-assisted method found the same best answer as the classical optimum.</p>
+      </div>
+      <div class="explain-card">
+        <h3>Current reading</h3>
+        <p>Selected solver: <code>{_h(solver_story.get("solver_label"))}</code>. Exact gap: <code>{_h("n/a" if solver_story.get("exact_gap_pct") is None else f"{_as_float(solver_story.get('exact_gap_pct')):.2f}%")}</code>. Suitability is <code>{_h(quantum_control.get("suitability"))}</code> for this local problem.</p>
+      </div>
+    """
+    cross_zone_explainer_html = f"""
+      <div class="explain-card">
+        <div class="eyebrow">Network Meaning</div>
+        <h3>Left table = inter-zone movement</h3>
+        <p>Each cohort row shows how a moving crowd group traverses the backbone graph from one zone to another. This is the system-level routing layer above the local QAOA zone solver.</p>
+      </div>
+      <div class="explain-card">
+        <h3>Current reading</h3>
+        <p>Total cohorts: <code>{_as_int(cross_zone_result.get("n_cohorts"))}</code>. Cross-zone journeys: <code>{_as_int(cross_zone_result.get("n_cross_zone"))}</code>. Greedy and exact costs are <code>{_as_float(cross_zone_result.get("greedy_gap_pct")):.2f}%</code> apart, which means the backbone plan is currently stable.</p>
+      </div>
+    """
 
     image_cards = []
     for image_path, label in [
-        (Path("output_layer1_network.png"), "Layer 1 network"),
-        (Path("output_layer2_clusters.png"), "Layer 2 clusters"),
-        (Path("output_comparison.png"), "Comparison view"),
-        (Path("output_barchart.png"), "Benchmark bar chart"),
-        (Path("output_route_overlay.png"), "Exact route overlay"),
+        (GRAPH_IMAGE_OUTPUT, "Layer 1 network"),
+        (CLUSTER_IMAGE_OUTPUT, "Layer 2 clusters"),
+        (COMPARISON_IMAGE_OUTPUT, "Comparison view"),
+        (BARCHART_IMAGE_OUTPUT, "Benchmark bar chart"),
+        (ROUTE_OVERLAY_IMAGE_OUTPUT, "Exact route overlay"),
     ]:
         if image_path.exists():
             image_cards.append(
@@ -457,14 +664,34 @@ def main() -> None:
         if image_cards
         else "<p class='muted'>No images generated yet.</p>"
     )
+    command_visual_path = None
+    for candidate in [
+        ROUTE_OVERLAY_IMAGE_OUTPUT,
+        COMPARISON_IMAGE_OUTPUT,
+        CLUSTER_IMAGE_OUTPUT,
+        GRAPH_IMAGE_OUTPUT,
+    ]:
+        if candidate.exists():
+            command_visual_path = candidate
+            break
+    command_visual_html = (
+        """
+        <figure class="command-visual">
+          <img src="{uri}" alt="Live control room visual">
+          <figcaption>Operational visual: current crowd-routing evidence generated from the pipeline.</figcaption>
+        </figure>
+        """.format(uri=_image_data_uri(command_visual_path))
+        if command_visual_path is not None
+        else "<div class='command-visual empty'><p class='muted'>No operational visual available yet.</p></div>"
+    )
 
     artifact_rows = [
-        ("graph_data.pkl", _file_stat_line(Path("graph_data.pkl"))),
-        ("cluster_data.pkl", _file_stat_line(Path("cluster_data.pkl"))),
-        ("qaoa_results.pkl", _file_stat_line(Path("qaoa_results.pkl"))),
-        ("sprint_report.json", _file_stat_line(Path("sprint_report.json"))),
-        ("predictive_state.json", _file_stat_line(Path("predictive_state.json"))),
-        ("simulation_state.json", _file_stat_line(Path("simulation_state.json"))),
+        (GRAPH_OUTPUT.name, _file_stat_line(GRAPH_OUTPUT)),
+        (CLUSTER_PATH.name, _file_stat_line(CLUSTER_PATH)),
+        (QAOA_PATH.name, _file_stat_line(QAOA_PATH)),
+        (REPORT_PATH.name, _file_stat_line(REPORT_PATH)),
+        (PREDICTIVE_PATH.name, _file_stat_line(PREDICTIVE_PATH)),
+        (SIMULATION_PATH.name, _file_stat_line(SIMULATION_PATH)),
     ]
     artifact_rows_html = "\n".join(
         f"<tr><td><code>{_h(name)}</code></td><td>{_h(stat)}</td></tr>"
@@ -476,44 +703,100 @@ def main() -> None:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MahaKhumb Demo 3 - Behind The Scenes</title>
+  <title>Continuum Demo 3 - Behind The Scenes</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {{
-      --bg: #f4efe4;
-      --ink: #1f2a30;
-      --muted: #56666b;
-      --card: #fffdf7;
-      --line: #d8cfbe;
+      --bg: #f2ede2;
+      --ink: #1c2327;
+      --muted: #5f696d;
+      --card: rgba(255, 252, 246, 0.92);
+      --line: #d5ccb8;
       --accent: #0f766e;
-      --accent2: #b45309;
-      --good: #15803d;
-      --warn: #b45309;
-      --bad: #b91c1c;
-      --shadow: 0 14px 32px rgba(0, 0, 0, 0.08);
+      --accent2: #c26a13;
+      --good: #167441;
+      --warn: #c26a13;
+      --bad: #bf3d2f;
+      --navy: #1e3a5f;
+      --shadow: 0 18px 40px rgba(31, 42, 48, 0.10);
     }}
     * {{ box-sizing: border-box; }}
     body {{
       margin: 0;
       color: var(--ink);
       font-family: "Sora", "Segoe UI", sans-serif;
-      background: radial-gradient(circle at 0% 0%, #fff7e8 0, #f4efe4 36%), #f4efe4;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(255, 247, 232, 0.95) 0, transparent 34%),
+        radial-gradient(circle at 100% 0%, rgba(15, 118, 110, 0.10) 0, transparent 30%),
+        linear-gradient(180deg, #f7f1e6 0%, #f2ede2 100%);
       line-height: 1.55;
+      overflow-x: hidden;
+    }}
+    body::before {{
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: linear-gradient(rgba(28,35,39,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(28,35,39,0.025) 1px, transparent 1px);
+      background-size: 24px 24px;
+      mask-image: radial-gradient(circle at center, black 35%, transparent 85%);
+    }}
+    body::after {{
+      content: "";
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 170px;
+      pointer-events: none;
+      opacity: 0.18;
+      background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 220'%3E%3Cpath fill='%230f766e' fill-opacity='0.18' d='M0 150c76 0 76-24 152-24s76 24 152 24 76-24 152-24 76 24 152 24 76-24 152-24 76 24 152 24 76-24 152-24 76 24 152 24 76-24 152-24 76 24 152 24v70H0z'/%3E%3Cpath fill='%230f766e' fill-opacity='0.12' d='M0 176c58 0 58-16 116-16s58 16 116 16 58-16 116-16 58 16 116 16 58-16 116-16 58 16 116 16 58-16 116-16 58 16 116 16 58-16 116-16 58 16 116 16 58-16 116-16 58 16 116 16v44H0z'/%3E%3C/svg%3E") center bottom / cover no-repeat;
+      z-index: 0;
     }}
     .wrap {{
       width: min(1360px, calc(100vw - 28px));
       margin: 0 auto;
       padding: 22px 0 48px;
+      position: relative;
+      z-index: 1;
     }}
     .hero {{
-      background: linear-gradient(125deg, rgba(15,118,110,0.1), rgba(180,83,9,0.08));
+      background:
+        linear-gradient(135deg, rgba(15,118,110,0.15), rgba(194,106,19,0.12)),
+        linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.2));
       border: 1px solid var(--line);
-      border-radius: 22px;
+      border-radius: 26px;
       box-shadow: var(--shadow);
-      padding: 24px;
-      margin-bottom: 14px;
+      padding: 28px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      position: relative;
+    }}
+    .hero::before {{
+      content: "";
+      position: absolute;
+      left: 26px;
+      bottom: 12px;
+      width: 340px;
+      height: 118px;
+      opacity: 0.11;
+      pointer-events: none;
+      background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 460 180'%3E%3Cg fill='%231e3a5f'%3E%3Cpath d='M8 154h66l10-40 10 40h54V92l22-28 22 28v62h46l12-52 14 52h62V108l20-24 20 24v46h40l12-30 10 30h58v18H8z'/%3E%3Cpath d='M98 114V78l14-16 14 16v36M286 108V76l13-14 13 14v32M392 122V96l10-14 10 14v26'/%3E%3C/g%3E%3C/svg%3E") left bottom / contain no-repeat;
+      z-index: 0;
+    }}
+    .hero::after {{
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      right: -100px;
+      top: -120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(15,118,110,0.20), transparent 68%);
     }}
     .tag {{
       display: inline-block;
@@ -526,6 +809,8 @@ def main() -> None:
       color: var(--accent);
       background: rgba(255, 255, 255, 0.7);
       margin-bottom: 10px;
+      position: relative;
+      z-index: 1;
     }}
     h1, h2, h3 {{ margin: 0 0 8px; }}
     h1 {{ font-size: clamp(1.9rem, 4vw, 3rem); line-height: 1.1; }}
@@ -541,6 +826,7 @@ def main() -> None:
       background: var(--card);
       border: 1px solid var(--line);
       border-radius: 18px;
+      backdrop-filter: blur(10px);
       box-shadow: var(--shadow);
       padding: 18px;
     }}
@@ -555,9 +841,9 @@ def main() -> None:
     }}
     .kpi {{
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 12px;
-      background: #fff;
+      background: rgba(255, 255, 255, 0.78);
     }}
     .kpi strong {{
       display: block;
@@ -581,7 +867,7 @@ def main() -> None:
     .warn {{ color: var(--warn); font-weight: 600; }}
     .bad {{ color: var(--bad); font-weight: 600; }}
     .stage-list {{ display: grid; gap: 10px; margin-top: 8px; }}
-    .stage {{ border: 1px solid var(--line); border-radius: 12px; padding: 11px; background: #fff; }}
+    .stage {{ border: 1px solid var(--line); border-radius: 12px; padding: 11px; background: rgba(255,255,255,0.8); }}
     .stage h3 {{ font-size: 1rem; margin-bottom: 4px; }}
     .gallery {{
       display: grid;
@@ -592,15 +878,218 @@ def main() -> None:
     .image-card img {{ display: block; width: 100%; height: auto; }}
     .image-card figcaption {{ font-size: 0.84rem; color: var(--muted); padding: 8px 10px; }}
     .muted {{ color: var(--muted); }}
-    .callout {{ border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: #fff; }}
+    .callout {{ border: 1px solid var(--line); border-radius: 16px; padding: 14px; background: rgba(255,255,255,0.82); }}
     .solver-strip {{ display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }}
-    .solver-card {{ border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: #fff; }}
+    .solver-card {{ border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: rgba(255,255,255,0.82); }}
     .solver-card strong {{ display: block; font-size: 1rem; margin-bottom: 4px; color: var(--accent); }}
+    .eyebrow {{
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }}
+    .hero-grid {{
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 18px;
+      align-items: start;
+    }}
+    .command-stack {{
+      display: grid;
+      gap: 14px;
+    }}
+    .metric-brief {{
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }}
+    .metric-row {{
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 12px;
+      align-items: start;
+      border-bottom: 1px solid rgba(28,35,39,0.08);
+      padding-bottom: 10px;
+    }}
+    .metric-row:last-child {{
+      border-bottom: none;
+      padding-bottom: 0;
+    }}
+    .metric-key {{
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }}
+    .metric-text strong {{
+      color: var(--navy);
+    }}
+    .hero-panel {{
+      border: 1px solid rgba(28, 35, 39, 0.08);
+      border-radius: 18px;
+      padding: 14px;
+      background: rgba(255,255,255,0.64);
+    }}
+    .hero-panel strong {{
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 6px;
+      color: var(--navy);
+    }}
+    .status-line {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }}
+    .pill {{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: rgba(30, 58, 95, 0.08);
+      color: var(--navy);
+    }}
+    .pill.good {{ background: rgba(22,116,65,0.12); color: var(--good); }}
+    .pill.warn {{ background: rgba(194,106,19,0.12); color: var(--warn); }}
+    .pill.bad {{ background: rgba(191,61,47,0.12); color: var(--bad); }}
+    .risk-grid {{
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }}
+    .risk-card {{
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(255,255,255,0.82);
+    }}
+    .risk-card-head {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }}
+    .mini-bars {{
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }}
+    .mini-bars span {{
+      display: inline-block;
+      width: 34px;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }}
+    .mini-track, .bar-track {{
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: #ebe2d0;
+      overflow: hidden;
+    }}
+    .mini-fill, .bar-fill {{
+      height: 100%;
+      border-radius: 999px;
+    }}
+    .mini-fill.good, .bar-fill.good {{ background: linear-gradient(90deg, #167441, #2fb36b); }}
+    .mini-fill.warn, .bar-fill.warn {{ background: linear-gradient(90deg, #c26a13, #e69a3a); }}
+    .mini-fill.bad, .bar-fill.bad {{ background: linear-gradient(90deg, #bf3d2f, #ef6b57); }}
+    .mini-fill.neutral {{ background: linear-gradient(90deg, #55758a, #8da9b7); }}
+    .bar-fill.accent {{ background: linear-gradient(90deg, #0f766e, #39b7ab); }}
+    .chart-card {{
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 16px;
+      align-items: center;
+    }}
+    .viz-explainer {{
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
+      gap: 18px;
+      align-items: start;
+    }}
+    .visual-pane {{
+      min-width: 0;
+    }}
+    .explain-pane {{
+      display: grid;
+      gap: 12px;
+    }}
+    .explain-card {{
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: rgba(255,255,255,0.82);
+    }}
+    .explain-card h3 {{
+      margin: 0 0 6px;
+      font-size: 1rem;
+      color: var(--navy);
+    }}
+    .explain-card p {{
+      margin: 0;
+    }}
+    .command-visual {{
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.82);
+      box-shadow: var(--shadow);
+    }}
+    .command-visual img {{
+      display: block;
+      width: 100%;
+      height: auto;
+    }}
+    .command-visual figcaption {{
+      padding: 10px 12px;
+      font-size: 0.84rem;
+      color: var(--muted);
+    }}
+    .command-visual.empty {{
+      padding: 18px;
+    }}
+    .chart-svg {{
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+      border: 1px solid var(--line);
+      padding: 8px;
+    }}
+    .chart-axis {{
+      stroke: #bcae8f;
+      stroke-width: 1.25;
+    }}
+    .bar-stack {{
+      display: grid;
+      gap: 14px;
+    }}
+    .bar-meta {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }}
+    .bar-meta strong {{
+      color: var(--navy);
+      margin: 0;
+    }}
     @media (max-width: 980px) {{
       .span-8, .span-6, .span-4 {{ grid-column: span 12; }}
       .kpis {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .gallery {{ grid-template-columns: 1fr; }}
       .solver-strip {{ grid-template-columns: 1fr; }}
+      .hero-grid, .chart-card, .risk-grid, .viz-explainer {{ grid-template-columns: 1fr; }}
     }}
     @media (max-width: 560px) {{
       .kpis {{ grid-template-columns: 1fr; }}
@@ -611,8 +1100,45 @@ def main() -> None:
   <div class="wrap">
     <section class="hero">
       <div class="tag">Demo 3</div>
-      <h1>MahaKhumb Behind-The-Scenes Console</h1>
-      <p>This page exposes what is running behind the main dashboard: model outputs, zone decomposition internals, QAOA benchmark internals, and cross-zone routing internals from saved artifacts.</p>
+      <div class="hero-grid">
+        <div class="command-stack">
+          <div>
+            <h1>UP Crowd Control Command Console</h1>
+            <p>Submission view for a government-style operations room: left side shows decision metrics, right side shows the live operational visual that officers would use to monitor and redirect movement.</p>
+          </div>
+          <div class="status-line">
+            <span class="pill {_severity_tone(_as_float(control_prediction.get("current_severity")))}">Risk Zone {_h(control_prediction.get("risk_zone"))}</span>
+            <span class="pill">{_h(control_prediction.get("event_type", "baseline")).replace("_", " ")}</span>
+            <span class="pill">ETA {_as_int(control_prediction.get("overload_eta_minutes"))}m</span>
+            <span class="pill">Confidence {_h(control_prediction.get("confidence", "medium"))}</span>
+          </div>
+          <div class="hero-panel">
+            <div class="eyebrow">Command Metrics</div>
+            <div class="metric-brief">
+              <div class="metric-row">
+                <div class="metric-key">Current State</div>
+                <div class="metric-text"><strong>{_h(control_prediction.get("event_type", "baseline")).replace("_", " ")}</strong> is driving zone <strong>{_h(control_prediction.get("risk_zone"))}</strong> with overload ETA <strong>{_as_int(control_prediction.get("overload_eta_minutes"))} minutes</strong>.</div>
+              </div>
+              <div class="metric-row">
+                <div class="metric-key">Routing Decision</div>
+                <div class="metric-text">Recommended solver is <strong>{_h(solver_story.get("solver_label"))}</strong>. Reason: <strong>{_h(solver_story.get("reason"))}</strong>.</div>
+              </div>
+              <div class="metric-row">
+                <div class="metric-key">Quantum Quality</div>
+                <div class="metric-text">QAOA feasible zones: <strong>{_as_int(experiment.get("qaoa_feasible_count"))}</strong>, match rate: <strong>{_as_float(experiment.get("qaoa_optimal_match_percent")):.0f}%</strong>, avg runtime: <strong>{_as_float(experiment.get("avg_qaoa_time_seconds")):.2f}s</strong>.</div>
+              </div>
+              <div class="metric-row">
+                <div class="metric-key">Field Scale</div>
+                <div class="metric-text">Road graph covers <strong>{_as_int(graph.get("node_count"))}</strong> nodes and <strong>{_as_int(graph.get("edge_count"))}</strong> edges for crowd movement control.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <aside class="hero-panel">
+          <div class="eyebrow">Live Operational Visual</div>
+          {command_visual_html}
+        </aside>
+      </div>
       <div class="kpis">
         <div class="kpi"><strong>{_as_int(graph.get("node_count"))}</strong>Road nodes</div>
         <div class="kpi"><strong>{_as_int(graph.get("edge_count"))}</strong>Road edges</div>
@@ -683,6 +1209,51 @@ def main() -> None:
         <p>Events published: <code>{_as_int(stream_summary.get("event_count"))}</code></p>
       </article>
 
+      <article class="card span-12 viz-explainer">
+        <div class="visual-pane">
+          <h2>Live Risk Board</h2>
+          <p class="muted">This is the fastest read of the crowd state: top live zones, severity momentum, and event pressure.</p>
+          <div class="risk-grid" style="margin-top:14px;">
+            {risk_strip_html}
+          </div>
+        </div>
+        <aside class="explain-pane">
+          {risk_explainer_html}
+        </aside>
+      </article>
+
+      <article class="card span-12">
+        <h2>Field Visual Evidence</h2>
+        <p class="muted">These generated visuals should appear near the top because control rooms need data plus visual proof before taking action on the ground.</p>
+        <div class="gallery" style="margin-top:14px;">{image_gallery_html}</div>
+      </article>
+
+      <article class="card span-12 viz-explainer">
+        <div class="visual-pane">
+          <h2>Zone Severity Sweep</h2>
+          <p class="muted">Severity by zone from the current simulation snapshot. Peaks show where routing pressure is already concentrated.</p>
+          <div style="margin-top:12px;">
+            {severity_chart_html}
+          </div>
+        </div>
+        <aside class="explain-pane">
+          {severity_explainer_html}
+        </aside>
+      </article>
+
+      <article class="card span-12 viz-explainer">
+        <div class="visual-pane">
+          <h2>Solver Cost Comparison</h2>
+          <p class="muted">Lower is better. This makes the exact, greedy, and QAOA tradeoff readable without scanning the raw benchmark table.</p>
+          <div class="bar-stack" style="margin-top:14px;">
+            {solver_bar_html}
+          </div>
+        </div>
+        <aside class="explain-pane">
+          {solver_explainer_html}
+        </aside>
+      </article>
+
       <article class="card span-12">
         <h2>Control Room Narrative</h2>
         <div class="callout">
@@ -712,15 +1283,15 @@ def main() -> None:
           </div>
           <div class="solver-card">
             <strong>Classical Baselines</strong>
-            <p>Exact cost: <code>{_as_float(quantum_control.get("exact_cost")):.4f}</code></p>
-            <p>Greedy cost: <code>{_as_float(quantum_control.get("greedy_cost")):.4f}</code></p>
+            <p>Exact cost: <code>{_h("n/a" if quantum_control.get("exact_cost") is None else f"{_as_float(quantum_control.get('exact_cost')):.4f}")}</code></p>
+            <p>Greedy cost: <code>{_h("n/a" if quantum_control.get("greedy_cost") is None else f"{_as_float(quantum_control.get('greedy_cost')):.4f}")}</code></p>
             <p>Statement: <code>matched classical optimum for this local zone</code> is used only when exact and selected route align.</p>
           </div>
           <div class="solver-card">
             <strong>Quantum-Assisted Result</strong>
             <p>Solver label: <code>{_h(solver_story.get("solver_label"))}</code></p>
-            <p>QAOA cost: <code>{_as_float(quantum_control.get("qaoa_cost")):.4f}</code></p>
-            <p>Runtime: <code>{_as_float(quantum_control.get("qaoa_runtime")):.2f}s</code></p>
+            <p>QAOA cost: <code>{_h("n/a" if quantum_control.get("qaoa_cost") is None else f"{_as_float(quantum_control.get('qaoa_cost')):.4f}")}</code></p>
+            <p>Runtime: <code>{_h("n/a" if quantum_control.get("qaoa_runtime") is None else f"{_as_float(quantum_control.get('qaoa_runtime')):.2f}s")}</code></p>
             <p>Exact gap: <code>{_h("n/a" if solver_story.get("exact_gap_pct") is None else f"{_as_float(solver_story.get('exact_gap_pct')):.2f}%")}</code></p>
           </div>
         </div>
@@ -779,28 +1350,33 @@ def main() -> None:
         <p><code>{_h(backbone_edges)}</code></p>
       </article>
 
-      <article class="card span-12">
-        <h2>Cross-Zone Routing Internals (Demo 3)</h2>
-        <p>
-          Cohorts: <code>{_as_int(cross_zone_result.get("n_cohorts"))}</code> |
-          Cross-zone: <code>{_as_int(cross_zone_result.get("n_cross_zone"))}</code> |
-          Intra-zone: <code>{_as_int(cross_zone_result.get("n_intra_zone"))}</code> |
-          Greedy cost: <code>{_as_float(cross_zone_result.get("greedy_cost")):.4f}</code> |
-          Exact cost: <code>{_as_float(cross_zone_result.get("exact_cost")):.4f}</code> |
-          Gap: <code>{_as_float(cross_zone_result.get("greedy_gap_pct")):.2f}%</code> |
-          QUBO shape: <code>{_h(cross_zone_result.get("qubo_shape", []))}</code>
-        </p>
-        <table>
-          <thead>
-            <tr>
-              <th>Cohort</th>
-              <th>Zone Path</th>
-              <th>Segments</th>
-              <th>Total Cost</th>
-            </tr>
-          </thead>
-          <tbody>{cross_zone_rows_html}</tbody>
-        </table>
+      <article class="card span-12 viz-explainer">
+        <div class="visual-pane">
+          <h2>Cross-Zone Routing Internals (Demo 3)</h2>
+          <p>
+            Cohorts: <code>{_as_int(cross_zone_result.get("n_cohorts"))}</code> |
+            Cross-zone: <code>{_as_int(cross_zone_result.get("n_cross_zone"))}</code> |
+            Intra-zone: <code>{_as_int(cross_zone_result.get("n_intra_zone"))}</code> |
+            Greedy cost: <code>{_as_float(cross_zone_result.get("greedy_cost")):.4f}</code> |
+            Exact cost: <code>{_as_float(cross_zone_result.get("exact_cost")):.4f}</code> |
+            Gap: <code>{_as_float(cross_zone_result.get("greedy_gap_pct")):.2f}%</code> |
+            QUBO shape: <code>{_h(cross_zone_result.get("qubo_shape", []))}</code>
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Cohort</th>
+                <th>Zone Path</th>
+                <th>Segments</th>
+                <th>Total Cost</th>
+              </tr>
+            </thead>
+            <tbody>{cross_zone_rows_html}</tbody>
+          </table>
+        </div>
+        <aside class="explain-pane">
+          {cross_zone_explainer_html}
+        </aside>
       </article>
 
       <article class="card span-12">
@@ -820,17 +1396,13 @@ def main() -> None:
         </table>
       </article>
 
-      <article class="card span-12">
-        <h2>Generated Visual Artifacts</h2>
-        <div class="gallery">{image_gallery_html}</div>
-      </article>
     </section>
   </div>
 </body>
 </html>
 """
 
-    OUTPUT_PATH.write_text(html_text, encoding="utf-8")
+    write_text_atomic(OUTPUT_PATH, html_text, encoding="utf-8")
     print(f"Saved: {OUTPUT_PATH}")
 
 

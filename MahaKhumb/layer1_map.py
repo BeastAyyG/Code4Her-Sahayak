@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import pickle
 import warnings
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import osmnx as ox
 
+from artifact_utils import write_pickle_atomic
 from config import (
     FORCE_SYNTHETIC_GRAPH,
     GRAPH_IMAGE_OUTPUT,
@@ -166,22 +165,21 @@ def apply_predictive_weights(graph: nx.MultiDiGraph) -> dict[str, object]:
 
 
 def save_outputs(graph: nx.MultiDiGraph, nodes_gdf: object, edges_gdf: object) -> None:
-    with OUTPUT_GRAPH.open("wb") as handle:
-        pickle.dump(
-            {
-                "G_real": graph,
-                "nodes_gdf": nodes_gdf,
-                "edges_gdf": edges_gdf,
-                "metadata": {
-                    "center": {"lat": SANGAM_LAT, "lon": SANGAM_LON},
-                    "radius_meters": RADIUS_METERS,
-                    "node_count": len(nodes_gdf),
-                    "edge_count": len(edges_gdf),
-                    "predictive_summary": graph.graph.get("predictive_summary", {}),
-                },
+    write_pickle_atomic(
+        OUTPUT_GRAPH,
+        {
+            "G_real": graph,
+            "nodes_gdf": nodes_gdf,
+            "edges_gdf": edges_gdf,
+            "metadata": {
+                "center": {"lat": SANGAM_LAT, "lon": SANGAM_LON},
+                "radius_meters": RADIUS_METERS,
+                "node_count": len(nodes_gdf),
+                "edge_count": len(edges_gdf),
+                "predictive_summary": graph.graph.get("predictive_summary", {}),
             },
-            handle,
-        )
+        },
+    )
 
     fig, ax = ox.plot.plot_graph(
         graph,
@@ -199,7 +197,7 @@ def save_outputs(graph: nx.MultiDiGraph, nodes_gdf: object, edges_gdf: object) -
 def main() -> None:
     source = "osm"
     if FORCE_SYNTHETIC_GRAPH:
-        print("Map mode: synthetic fallback forced by MAHAKHUMB_FORCE_SYNTHETIC=1")
+        print("Map mode: synthetic fallback forced by CONTINUUM_FORCE_SYNTHETIC=1")
         graph, nodes_gdf, edges_gdf = _synthesise_graph()
         source = "synthetic"
     else:

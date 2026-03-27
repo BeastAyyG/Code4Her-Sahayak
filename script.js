@@ -207,9 +207,79 @@ document.addEventListener('DOMContentLoaded', () => {
   // ===== SOS BUTTON =====
   const sosBtn = document.getElementById('sosBtn');
   if (sosBtn) {
-    sosBtn.addEventListener('click', (e) => {
+    sosBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-      window.location.href = 'dialer.html?sos=1';
+      
+      const BOT_TOKEN = '8724759053:AAE9E_HvRBmqAs7S5AyMtLkwuOoO5dA5S04';
+      const CHAT_ID = '5999899762'; 
+      
+      const originalHtml = sosBtn.innerHTML;
+      sosBtn.innerHTML = 'Sending...';
+      sosBtn.disabled = true;
+      
+      try {
+          // Send SOS text
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  chat_id: CHAT_ID,
+                  text: `🚨 I am in danger! 🚨`
+              })
+          });
+
+          if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(async (pos) => {
+                  try {
+                      // Send initial live location
+                      const locRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendLocation`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                              chat_id: CHAT_ID,
+                              latitude: pos.coords.latitude,
+                              longitude: pos.coords.longitude,
+                              live_period: 3600 // 1 hour
+                          })
+                      });
+                      
+                      const locData = await locRes.json();
+                      if (locData.ok) {
+                          const message_id = locData.result.message_id;
+                          // Start watching position to update live location
+                          navigator.geolocation.watchPosition(async (newPos) => {
+                              try {
+                                  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageLiveLocation`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                          chat_id: CHAT_ID,
+                                          message_id: message_id,
+                                          latitude: newPos.coords.latitude,
+                                          longitude: newPos.coords.longitude
+                                      })
+                                  });
+                              } catch(err) {
+                                  console.error("Failed to update live location", err);
+                              }
+                          }, (err) => console.warn(err), { enableHighAccuracy: true });
+                      }
+                  } catch(err) {
+                      console.error("Telegram Location API Error:", err);
+                  }
+              }, (err) => {
+                  console.warn("Could not get location for SOS", err);
+              }, { enableHighAccuracy: true });
+          }
+          
+          sosBtn.innerHTML = 'SOS Active 🚨';
+          sosBtn.style.backgroundColor = '#ff0000';
+          sosBtn.style.color = '#fff';
+      } catch (err) {
+          console.error("Telegram API Error:", err);
+          sosBtn.innerHTML = originalHtml;
+          sosBtn.disabled = false;
+      }
     });
   }
 

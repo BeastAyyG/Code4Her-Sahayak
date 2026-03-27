@@ -644,8 +644,15 @@
       }
     }
 
-    .contact-avatar.ringing {
-      animation: ringPulse 1.5s ease-out infinite;
+    .contact-avatar.talking {
+      animation: talkingPulse 1s ease-in-out infinite;
+      border-color: #22c55e;
+    }
+
+    @keyframes talkingPulse {
+      0% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+      70% { transform: scale(1.1); box-shadow: 0 0 0 20px rgba(34, 197, 94, 0); }
+      100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
     }
   </style>
 </head>
@@ -764,9 +771,10 @@
     <div class="call-info">
       <div class="call-type-label">Google Voice Wi-Fi / data call</div>
       <div class="contact-avatar" id="contactAvatar">
-        <img src="guru.png" alt="Gurudev">
+        <img src="feminine_logo.png" alt="Sahayak AI">
       </div>
-      <div class="contact-name">Gurudev</div>
+      <div class="contact-name">Sahayak AI</div>
+      <div id="voiceTranscript" style="font-size: 13px; color: #22c55e; margin: 5px 0; opacity: 0.8; min-height: 1.2em;"></div>
       <div class="call-timer" id="callTimer">
         <span class="connecting-dots"><span></span><span></span><span></span></span>
       </div>
@@ -889,6 +897,81 @@
     // Note: Make sure the audio file exists in the correct path.
     const safetyCallAudio = new Audio('main1rec.mpeg');
 
+    // ─── Voice AI Configuration (Gemini + Web Speech) ───
+    let recognition = null;
+    let synth = window.speechSynthesis;
+    let geminiApiKey = 'AIzaSyCwwL-nDCicI2fW2mCRPxyAQkcejFohfSc';
+
+    // Initialize Speech Recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+    }
+
+    async function getGeminiResponse(userText) {
+      if (!geminiApiKey) {
+        return "I'm sorry, I need an API key to talk to you.";
+      }
+
+      try {
+        console.log("Calling Gemini API...");
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: `You are Sahayak, a caring and alert AI safety companion for women. A user is talking to you during a potentially unsafe situation. Keep your responses short, firm, reassuring, and action-oriented. User said: "${userText}"` }]
+            }]
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Gemini API Error Response:", errorData);
+          throw new Error(`API Error ${response.status}: ${errorData.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+      } catch (err) {
+        console.error("Detailed Gemini Error:", err);
+        // Alert the user with more detail to help debug
+        alert("Gemini Connection Error: " + err.message + "\n\nTip: Check your API key and ensure you are running the site via a local server (like Live Server) rather than opening the file directly.");
+        return "I'm having trouble connecting right now, but I'm still here with you. Stay alert.";
+      }
+    }
+
+    function speak(text) {
+      if (!synth) return;
+      
+      // Stop any current speaking
+      synth.cancel();
+
+      const utterance = new Utterance(text);
+      // Try to find a nice female voice
+      const voices = synth.getVoices();
+      utterance.voice = voices.find(v => (v.name.includes('Female') || v.name.includes('Google US English') || v.name.includes('Microsoft Zira')) && v.lang.startsWith('en')) || voices[0];
+      utterance.rate = 1.0;
+      utterance.pitch = 1.1;
+
+      utterance.onstart = () => {
+        contactAvatar.classList.add('talking');
+        if (callTimerEl) callTimerEl.textContent = "Sahayak is speaking...";
+      };
+      utterance.onend = () => {
+        contactAvatar.classList.remove('talking');
+        if (callTimerEl) callTimerEl.textContent = "I'm listening...";
+      };
+      
+      synth.speak(utterance);
+    }
+
+    // Polyfill or reference for Utterance
+    const Utterance = window.SpeechSynthesisUtterance;
+
     // ─── DOM refs ───
     const dialerScreen = document.getElementById('dialerScreen');
     const dialDisplay = document.getElementById('dialDisplay');
@@ -976,9 +1059,51 @@
         callSeconds = 0;
         callTimerEl.textContent = formatTime(callSeconds);
 
-        // Play the recorded voice talk when the call connects
-        safetyCallAudio.currentTime = 0;
-        safetyCallAudio.play().catch(e => console.warn('Could not play audio:', e));
+        // Play the recorded voice talk or start Voice AI when the call connects
+        const urlPrms = new URLSearchParams(window.location.search);
+        if (urlPrms.get('mute') === '1') {
+          // Start Browser-Native Voice AI for Companion Mode
+          if (recognition) {
+            recognition.onstart = () => {
+              if (callTimerEl) callTimerEl.textContent = "I'm listening...";
+              const transcriptEl = document.getElementById('voiceTranscript');
+              if (transcriptEl) transcriptEl.textContent = "";
+            };
+            
+            recognition.start();
+            recognition.onresult = async (event) => {
+              const last = event.results.length - 1;
+              const text = event.results[last][0].transcript;
+              console.log('Heard:', text);
+              
+              const transcriptEl = document.getElementById('voiceTranscript');
+              if (transcriptEl) transcriptEl.textContent = '"' + text + '"';
+              
+              // Show thinking state
+              if (callTimerEl) callTimerEl.textContent = "Thinking...";
+              const aiResponse = await getGeminiResponse(text);
+              
+              speak(aiResponse);
+            };
+            
+            recognition.onerror = (e) => console.error('Speech Recognition Error:', e);
+            recognition.onend = () => {
+              if (isInCall) {
+                try { recognition.start(); } catch(e) {}
+              }
+            };
+            
+            // Initial greeting
+            setTimeout(() => speak("Hi, I'm Sahayak. I'm here with you. How are you feeling right now?"), 500);
+          } else {
+            alert("Your browser does not support Speech Recognition. Try Chrome or Edge.");
+            endCallBtn.click();
+          }
+        } else {
+          // Regular Dialer Mode: Play Local Audio
+          safetyCallAudio.currentTime = 0;
+          safetyCallAudio.play().catch(e => console.warn('Could not play audio:', e));
+        }
 
         // Start call timer
         callTimerInterval = setInterval(() => {
@@ -998,9 +1123,17 @@
     endCallBtn.addEventListener('click', () => {
       isInCall = false;
 
-      // Pause and reset the recorded voice talk
-      safetyCallAudio.pause();
-      safetyCallAudio.currentTime = 0;
+      const urlPrms = new URLSearchParams(window.location.search);
+      if (urlPrms.get('mute') === '1') {
+        // Stop Voice AI
+        if (recognition) recognition.stop();
+        if (synth) synth.cancel();
+        contactAvatar.classList.remove('talking');
+      } else {
+        // Pause and reset the recorded voice talk
+        safetyCallAudio.pause();
+        safetyCallAudio.currentTime = 0;
+      }
 
       clearInterval(callTimerInterval);
       clearInterval(holdTimerInterval);

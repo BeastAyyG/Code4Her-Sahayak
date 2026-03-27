@@ -832,6 +832,110 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
+  // ===== VGM REGION SAFE PLACES - ONE-TIME OVERPASS LOAD =====
+  // Fetches police, hospitals, pharmacies, etc. for Vijayawada + Guntur + Mangalagiri.
+  // Result is cached in localStorage for 24h so the API is never called more than once/day.
+  const VGM_HAVENS_CACHE_KEY = 'sahayak-vgm-havens-v1';
+  const VGM_HAVENS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+  function amenityMeta(amenity, shop) {
+    const lookup = {
+      police:       { icon: 'shield-check',  label: 'Police Station',   type: 'police'    },
+      hospital:     { icon: 'hospital',      label: 'Hospital',          type: 'hospital'  },
+      clinic:       { icon: 'stethoscope',   label: 'Clinic',            type: 'clinic'    },
+      pharmacy:     { icon: 'pill',          label: 'Pharmacy',          type: 'pharmacy'  },
+      fire_station: { icon: 'flame',         label: 'Fire Station',      type: 'fire'      },
+      atm:          { icon: 'credit-card',   label: 'ATM (CCTV)',        type: 'atm'       },
+      fuel:         { icon: 'fuel',          label: 'Petrol Station',    type: 'petrol'    },
+      bus_station:  { icon: 'bus',           label: 'Bus Station',       type: 'bus'       },
+      bank:         { icon: 'landmark',      label: 'Bank',              type: 'community' },
+      convenience:  { icon: 'store',         label: 'Convenience Store', type: 'store'     },
+      supermarket:  { icon: 'shopping-cart', label: 'Supermarket',       type: 'store'     }
+    };
+    return lookup[amenity] || lookup[shop] || { icon: 'map-pin', label: 'Active Area', type: 'active_area' };
+  }
+
+  async function loadVGMRegionData() {
+    // Step 1: Try the 24-hour localStorage cache first (zero network calls)
+    try {
+      const cached = localStorage.getItem(VGM_HAVENS_CACHE_KEY);
+      if (cached) {
+        const { timestamp, places } = JSON.parse(cached);
+        if (Date.now() - timestamp < VGM_HAVENS_CACHE_TTL && Array.isArray(places) && places.length > 0) {
+          SAFE_PLACES = [...SAFE_PLACES.filter(p => !String(p.id).startsWith('vgm-osm-')), ...places];
+          safeLayerGroup.clearLayers();
+          addSafePlaces();
+          updateSafeList();
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          console.log('[Sahayak] VGM havens loaded from cache:', places.length, 'places');
+          return;
+        }
+      }
+    } catch (_) {}
+
+    // Step 2: Single Overpass query covering all 3 cities at once.
+    // Bounding box: Vijayawada + Guntur + Mangalagiri (16.10-16.80 N, 80.20-81.00 E)
+    const QUERY = `
+[out:json][timeout:25];
+(
+  node["amenity"~"police|hospital|clinic|pharmacy|fire_station|atm|fuel|bus_station|bank"](16.10,80.20,16.80,81.00);
+  node["shop"~"convenience|supermarket"](16.10,80.20,16.80,81.00);
+);
+out body;
+`;
+
+    try {
+      updateStatus('Loading VGM region active areas (first load only)...');
+      const res = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        body: 'data=' + encodeURIComponent(QUERY)
+      });
+      if (!res.ok) throw new Error('Overpass HTTP ' + res.status);
+
+      const data = await res.json();
+      const elements = data.elements || [];
+
+      const seen = new Set();
+      const places = [];
+      for (const el of elements) {
+        if (seen.has(el.id) || !el.lat || !el.lon) continue;
+        seen.add(el.id);
+        const amenity = el.tags && el.tags.amenity ? el.tags.amenity : '';
+        const shop    = el.tags && el.tags.shop    ? el.tags.shop    : '';
+        const meta    = amenityMeta(amenity, shop);
+        const name    = (el.tags && el.tags.name) ? el.tags.name : meta.label;
+        places.push({
+          id:   'vgm-osm-' + el.id,
+          name,
+          lat:  el.lat,
+          lng:  el.lon,
+          type: meta.type,
+          icon: meta.icon,
+          open: (el.tags && el.tags.opening_hours) ? el.tags.opening_hours : '24/7'
+        });
+      }
+
+      // Persist to 24h localStorage cache
+      try {
+        localStorage.setItem(VGM_HAVENS_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), places }));
+      } catch (_) {}
+
+      SAFE_PLACES = [...SAFE_PLACES.filter(p => !String(p.id).startsWith('vgm-osm-')), ...places];
+      safeLayerGroup.clearLayers();
+      addSafePlaces();
+      updateSafeList();
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+
+      console.log('[Sahayak] VGM Overpass loaded', places.length, 'safe places (Vijayawada / Guntur / Mangalagiri)');
+      updateStatus('VGM region loaded: ' + places.length + ' active areas marked. Enter your destination.');
+
+    } catch (err) {
+      console.warn('[Sahayak] VGM region Overpass fetch failed:', err);
+      updateStatus('Map ready. (Region data unavailable - check connection.) Enter your destination.');
+    }
+  }
+
+
   function getGooglePlacesUsage() {
     try {
       const raw = localStorage.getItem(GOOGLE_PLACES_USAGE_KEY);
@@ -1439,30 +1543,65 @@
 
   // SOS button
   if (sosBtn) {
-    sosBtn.addEventListener('click', (e) => {
+    sosBtn.addEventListener('click', async (e) => {
       e.preventDefault();
+      
+      const BOT_TOKEN = '8724759053:AAE9E_HvRBmqAs7S5AyMtLkwuOoO5dA5S04';
+      // PLEASE NOTE: You must provide a valid CHAT_ID below for the message to send properly!
+      const CHAT_ID = 'YOUR_CHAT_ID_HERE'; 
+      
+      const originalHtml = sosBtn.innerHTML;
+      sosBtn.innerHTML = 'Sending...';
+      
+      let locText = 'Location: (Unavailable)';
+      if (userLocation) {
+          locText = `Location: https://maps.google.com/?q=${userLocation[0]},${userLocation[1]}`;
+      } else if (navigator.geolocation && isSecureForGeolocation()) {
+          try {
+              const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 3000 }));
+              locText = `Location: https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
+          } catch(err) {
+              console.warn("Could not get location for SOS", err);
+          }
+      }
+      
+      try {
+          // Send SOS to Telegram
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  chat_id: CHAT_ID,
+                  text: `🚨 EMERGENCY SOS 🚨\nSahayak User has triggered the SOS map button!\n${locText}`
+              })
+          });
+      } catch (err) {
+          console.error("Telegram API Error:", err);
+      }
+      
+      sosBtn.innerHTML = originalHtml;
+      // Proceed to the dialer fallback UI
       window.location.href = 'dialer.html?sos=1';
     });
   }
 
   // Allow clicking on map to set destination
   let clickLocked = false;
-  map = null; // will be set in initMap
 
   // ===== LOAD OFFLINE VGM STREETS =====
   async function loadVGMStreets() {
-    // PRIORITY 1: If Protomaps URL is set, use it (FREE, no API key!)
+    // PRIORITY 1: If Protomaps is configured (FREE - no API key needed!)
     if (CONFIG.protomapsUrl) {
       loadProtomapsTiles();
       return;
     }
-    
+
     // PRIORITY 2: If Mapbox is configured (requires paid account)
     if (CONFIG.useVectorTiles && CONFIG.mapboxToken && CONFIG.mapboxTilesetId) {
       loadMapboxTiles();
       return;
     }
-    
+
     // DEFAULT: Load GeoJSON directly (RECOMMENDED for files < 5MB)
     // This is 100% FREE - no accounts, no API keys, no credit cards!
     try {
@@ -1471,7 +1610,7 @@
         vgmStreetsData = await res.json();
         console.log('✅ Loaded GeoJSON streets data:', vgmStreetsData.features.length, 'features');
         console.log('💡 Tip: GeoJSON under 5MB works great on mobile!');
-        
+
         // Add GeoJSON layer to map for visualization
         addStreetsLayer();
       }
@@ -1697,6 +1836,7 @@
     initMap();
     loadVGMStreets();
     loadVGMHavens();
+    loadVGMRegionData();  // One-time OSM fetch for VGM cities (cached 24h)
     loadCommunityReports();
     const initialCenter = CONFIG.defaultCenter;
     populateReportCoordinates(initialCenter[0], initialCenter[1]);
